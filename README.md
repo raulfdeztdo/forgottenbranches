@@ -3,6 +3,7 @@
 [![Forks][forks-shield]][forks-url]
 [![Issues][issues-shield]][issues-url]
 [![License][license-shield]][license-url]
+[![Release][release-shield]][release-url]
 
 <!-- PROJECT LOGO -->
 <br />
@@ -187,3 +188,5 @@ Repositorio: [https://github.com/raulfdeztdo/forgottenbranches](https://github.c
 [issues-url]: https://github.com/raulfdeztdo/forgottenbranches/issues
 [license-shield]: https://img.shields.io/github/license/raulfdeztdo/forgottenbranches.svg?style=for-the-badge
 [license-url]: https://github.com/raulfdeztdo/forgottenbranches/blob/main/LICENSE
+[release-shield]: https://img.shields.io/github/v/release/raulfdeztdo/forgottenbranches?style=for-the-badge&color=purple
+[release-url]: https://github.com/raulfdeztdo/forgottenbranches/releases/latest
