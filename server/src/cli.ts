@@ -1,5 +1,16 @@
 import { createApp } from './app';
 import { execFile } from 'child_process';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+function getVersion(): string {
+  try {
+    const pkg = JSON.parse(readFileSync(join(__dirname, '../../package.json'), 'utf8'));
+    return pkg.version ?? 'unknown';
+  } catch {
+    return 'unknown';
+  }
+}
 
 async function findPort(start: number): Promise<number> {
   const net = await import('net');
@@ -44,7 +55,7 @@ async function main() {
 
   app.listen(port, '127.0.0.1', () => {
     const url = `http://localhost:${port}/${urlPath}`;
-    console.log(`\n  ⚡ Forgotten Branches → ${url}\n`);
+    console.log(`\n  ⚡ Forgotten Branches v${getVersion()} → ${url}\n`);
     console.log(`  Press Ctrl+C to stop.\n`);
     openBrowser(url);
   });

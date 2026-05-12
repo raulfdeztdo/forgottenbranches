@@ -57,7 +57,7 @@ log_info "Changes detected. Rebuilding..."
 echo ""
 
 # Install any new dependencies
-( cd "$SCRIPT_DIR" && pnpm install --frozen-lockfile )
+( cd "$SCRIPT_DIR" && pnpm install --no-frozen-lockfile )
 
 # Rebuild
 pnpm run build
