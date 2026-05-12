@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Forgotten Branches
+Comment=Find and clean up abandoned local git branches
+Icon=git-branch
+Exec=forgottenbranches
+Terminal=false
+Categories=Development;Utility;
+Keywords=git;branches;cleanup;

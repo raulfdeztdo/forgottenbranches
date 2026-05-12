@@ -1,0 +1,26 @@
+{
+  "name": "forgottenbranches",
+  "version": "1.0.0",
+  "description": "Find and clean up abandoned local git branches",
+  "private": true,
+  "packageManager": "pnpm@11.1.1",
+  "bin": {
+    "forgottenbranches": "./bin/cli.js"
+  },
+  "scripts": {
+    "dev:server": "pnpm --filter forgottenbranches-server run dev",
+    "dev:client": "pnpm --filter forgottenbranches-client run dev",
+    "dev": "concurrently \"pnpm run dev:server\" \"pnpm run dev:client\"",
+    "build:client": "pnpm --filter forgottenbranches-client run build",
+    "build:server": "pnpm --filter forgottenbranches-server run build",
+    "build": "pnpm run build:client && pnpm run build:server",
+    "start": "pnpm --filter forgottenbranches-server run start",
+    "install:all": "pnpm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0"
+  },
+  "dependencies": {
+    "forgottenbranches": "link:"
+  }
+}

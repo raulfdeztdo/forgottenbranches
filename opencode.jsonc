@@ -1,0 +1,58 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // ─────────────────────────────────────────────────────────────────
+  // PLANTILLA DE CONFIGURACIÓN — opencode.jsonc
+  //
+  // Este fichero es la plantilla pública y commiteable.
+  // Para configuración real con API keys, copia este fichero como
+  // opencode.json (está en .gitignore) y rellena los valores.
+  //
+  // Más info: https://opencode.ai/docs
+  // ─────────────────────────────────────────────────────────────────
+
+  // ── Modelo de IA ──────────────────────────────────────────────────
+  // Modelo por defecto para las sesiones de OpenCode.
+  // Ejemplos: "anthropic/claude-sonnet-4-5", "openai/gpt-4o", "google/gemini-2.5-pro"
+  // "model": "anthropic/claude-sonnet-4-5",
+
+  // ── Servidores MCP ───────────────────────────────────────────────
+  // MCP (Model Context Protocol): herramientas externas que el agente puede usar.
+  // Documentación: https://opencode.ai/docs/mcp
+  "mcp": {
+
+    // Context7 — Documentación actualizada de librerías
+    // Permite al agente consultar docs de React, Express, Vite, Node.js, etc.
+    // Obtén tu API key en: https://context7.com
+    "context7": {
+      "type": "remote",
+      "url": "https://mcp.context7.com/mcp",
+      "headers": {
+        // Reemplaza con tu API key real en opencode.json (no aquí)
+        "CONTEXT7_API_KEY": "TU_API_KEY_AQUI"
+      }
+    }
+
+    // ── Ejemplo: MCP local con stdio ────────────────────────────────
+    // Para servidores MCP que se ejecutan localmente como proceso.
+    // "mi-mcp-local": {
+    //   "type": "local",
+    //   "command": "npx",
+    //   "args": ["-y", "@nombre/paquete-mcp"],
+    //   "env": {
+    //     "MI_VARIABLE": "valor"
+    //   }
+    // }
+
+  }
+
+  // ── Instrucciones del sistema (system prompt adicional) ───────────
+  // Texto extra que se añade al prompt del sistema en cada sesión.
+  // Útil para recordar convenciones del proyecto al agente.
+  // "instructions": "Siempre usa execFile en lugar de exec para comandos git.",
+
+  // ── Directorio de contexto automático ────────────────────────────
+  // Ficheros que OpenCode incluye automáticamente como contexto.
+  // "autoshare": ["AGENTS.md", "README.md"]
+
+}
