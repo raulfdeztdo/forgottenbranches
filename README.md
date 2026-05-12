@@ -93,6 +93,7 @@ Muchas veces se suben ramas a producción, se mergean y se quedan abandonadas en
 ```bash
 git clone https://github.com/raulfdeztdo/forgottenbranches.git
 cd forgottenbranches
+chmod +x install.sh update.sh uninstall.sh
 ./install.sh
 ```
 

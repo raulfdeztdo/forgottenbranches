@@ -30,10 +30,13 @@ Thank you for your interest in contributing! This document explains how to set u
 git clone https://github.com/<your-username>/forgottenbranches.git
 cd forgottenbranches
 
-# 2. Install all dependencies (server + client workspaces)
+# 2. Grant execution permissions to the scripts
+chmod +x install.sh update.sh uninstall.sh
+
+# 3. Install all dependencies (server + client workspaces)
 pnpm install
 
-# 3. Start the development servers
+# 4. Start the development servers
 pnpm run dev
 ```
 
