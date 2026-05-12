@@ -55,7 +55,7 @@ export async function validateGitRepo(repoPath: string): Promise<void> {
 Los cinco estados y sus condiciones de detección:
 
 ```typescript
-export type BranchStatus = "Active" | "Forgotten" | "Orphan" | "Merged" | "Abandoned";
+export type BranchStatus = "active" | "forgotten" | "orphan" | "merged" | "abandoned";
 
 interface BranchInfo {
   name: string;
@@ -78,17 +78,17 @@ export function classifyBranch(branch: BranchInfo): BranchStatus {
 
   // Forgotten: mergeada + upstream eliminado
   if (branch.isMergedIntoMain && branch.upstreamGone) {
-    return "Forgotten";
+    return "forgotten";
   }
 
   // Orphan: upstream eliminado, sin mergear
   if (branch.upstreamGone && !branch.isMergedIntoMain) {
-    return "Orphan";
+    return "orphan";
   }
 
   // Merged: en main, upstream sigue vivo
   if (branch.isMergedIntoMain && !branch.upstreamGone) {
-    return "Merged";
+    return "merged";
   }
 
   // Abandoned: inactividad prolongada
@@ -96,10 +96,10 @@ export function classifyBranch(branch: BranchInfo): BranchStatus {
     ? ABANDONED_DAYS
     : ABANDONED_NO_UPSTREAM_DAYS;
   if (inactiveDays >= threshold) {
-    return "Abandoned";
+    return "abandoned";
   }
 
-  return "Active";
+  return "active";
 }
 
 function daysDiff(date: Date): number {

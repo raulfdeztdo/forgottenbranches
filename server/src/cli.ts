@@ -17,7 +17,7 @@ async function findPort(start: number): Promise<number> {
   return start;
 }
 
-async function openBrowser(url: string) {
+function openBrowser(url: string): void {
   const platform = process.platform;
   const [cmd, ...args]: string[] =
     platform === 'darwin'
