@@ -160,10 +160,10 @@ El backend escucha en `localhost:3001` y el frontend en `localhost:5173` con pro
 ## Cómo funciona
 
 ```
-┌─────────────┐     ┌──────────────┐     ┌───────────┐
+┌─────────────┐      ┌──────────────┐     ┌───────────┐
 │  React UI   │────▶│  Express API │────▶│  git CLI  │
 │  (Vite)     │◀────│  (Node.js)   │◀────│  (local)  │
-└─────────────┘     └──────────────┘     └───────────┘
+└─────────────┘      └──────────────┘     └───────────┘
 ```
 
 El backend Express ejecuta comandos `git` directamente sobre tus repositorios locales usando `child_process`. El frontend React muestra los resultados en una interfaz con tema One Dark Pro. En producción, un solo proceso Node.js sirve tanto la API como el frontend compilado — no necesitas arrancar dos procesos.
