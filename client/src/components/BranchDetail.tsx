@@ -128,30 +128,32 @@ export default function BranchDetail({
         className={`row-${branch.status} branch-row`}
         onClick={() => setExpanded(!expanded)}
       >
-        <td className="td-check">
-          <span
-            className={`check-cell ${selected ? 'checked' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggleSelect();
-            }}
-          >
+        <td
+          className="td-check"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelect();
+          }}
+        >
+          <span className={`check-cell ${selected ? 'checked' : ''}`}>
             {selected ? <CheckSquare size={15} /> : <Square size={15} />}
           </span>
         </td>
         <td className="branch-name-cell">
-          <span className="expand-icon">
-            {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </span>
-          <GitBranch size={14} className="branch-icon" />
-          <span className="branch-name-text" title={branch.name}>
-            {branch.name}
-          </span>
-          {branch.upstreamGone && (
-            <span className="gone-badge">
-              <AlertTriangle size={10} /> gone
+          <div className="branch-name-inner">
+            <span className="expand-icon">
+              {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
             </span>
-          )}
+            <GitBranch size={14} className="branch-icon" />
+            <span className="branch-name-text" title={branch.name}>
+              {branch.name}
+            </span>
+            {branch.upstreamGone && (
+              <span className="gone-badge">
+                <AlertTriangle size={10} /> gone
+              </span>
+            )}
+          </div>
         </td>
         <td className="upstream-cell">
           {branch.upstream ? (

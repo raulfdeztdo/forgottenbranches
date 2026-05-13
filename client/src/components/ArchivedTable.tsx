@@ -55,25 +55,27 @@ function ArchivedRow({
   return (
     <>
       <tr className="arch-row" onClick={() => setOpen(!open)}>
-        <td className="arch-check">
-          <span
-            className={`check-cell ${selected ? 'checked' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onToggle();
-            }}
-          >
+        <td
+          className="arch-check"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle();
+          }}
+        >
+          <span className={`check-cell ${selected ? 'checked' : ''}`}>
             {selected ? <CheckSquare size={15} /> : <Square size={15} />}
           </span>
         </td>
         <td>
-          <span className="arch-expand">
-            {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-          </span>
-          <GitBranch size={13} className="arch-branch-icon" />
-          <span className="arch-name" title={b.name}>
-            {b.name}
-          </span>
+          <div className="arch-name-inner">
+            <span className="arch-expand">
+              {open ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </span>
+            <GitBranch size={13} className="arch-branch-icon" />
+            <span className="arch-name" title={b.name}>
+              {b.name}
+            </span>
+          </div>
         </td>
         <td>
           <div className="arch-commit-msg" title={b.commitMessage}>
