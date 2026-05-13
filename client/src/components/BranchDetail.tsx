@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { BranchInfo } from '../types';
 import { STATUS_COLORS, STATUS_LABELS } from '../statusConfig';
+import { useToast } from './ToastContext';
 
 interface Props {
   branch: BranchInfo;
@@ -67,6 +68,7 @@ export default function BranchDetail({
   onDelete,
   onArchive,
 }: Props) {
+  const { toast } = useToast();
   const [expanded, setExpanded] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
@@ -84,13 +86,18 @@ export default function BranchDetail({
       );
       const json = await res.json();
       if (!res.ok) {
-        setActionError(json.error || json.message || 'Delete failed');
+        const msg = json.error || json.message || 'Delete failed';
+        setActionError(msg);
+        toast('error', `Failed to delete "${branch.name}"`, msg);
         return;
       }
+      toast('success', `Branch "${branch.name}" deleted`);
       setShowDelete(false);
       onDelete();
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Connection error');
+      const msg = err instanceof Error ? err.message : 'Connection error';
+      setActionError(msg);
+      toast('error', `Failed to delete "${branch.name}"`, msg);
     } finally {
       setDeleting(false);
     }
@@ -110,13 +117,18 @@ export default function BranchDetail({
       });
       const json = await res.json();
       if (!res.ok) {
-        setActionError(json.error || json.message || 'Archive failed');
+        const msg = json.error || json.message || 'Archive failed';
+        setActionError(msg);
+        toast('error', `Failed to archive "${branch.name}"`, msg);
         return;
       }
+      toast('success', `Branch "${branch.name}" archived`);
       setShowArchive(false);
       onArchive(branch.name);
     } catch (err) {
-      setActionError(err instanceof Error ? err.message : 'Connection error');
+      const msg = err instanceof Error ? err.message : 'Connection error';
+      setActionError(msg);
+      toast('error', `Failed to archive "${branch.name}"`, msg);
     } finally {
       setArchiving(false);
     }

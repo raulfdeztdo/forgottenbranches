@@ -9,6 +9,8 @@ import { BranchesResult, ArchivedBranch } from './types';
 import { STATUS_COLORS } from './statusConfig';
 import BranchTable from './components/BranchTable';
 import ArchivedTable from './components/ArchivedTable';
+import { useToast } from './components/ToastContext';
+import ForceDeleteModal, { FailedBranch } from './components/ForceDeleteModal';
 
 const STORAGE_KEY = 'forgottenbranches_recent';
 const MAX_RECENT = 6;
@@ -33,6 +35,7 @@ function saveRecent(paths: string[]) {
 
 
 export default function App() {
+  const { toast } = useToast();
   const [repoPath, setRepoPath] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -46,6 +49,7 @@ export default function App() {
   );
   const [archivedCount, setArchivedCount] = useState(0);
   const [archivedLoading, setArchivedLoading] = useState(false);
+  const [forceDeleteCandidates, setForceDeleteCandidates] = useState<FailedBranch[] | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const recentRef = useRef<HTMLDivElement>(null);
 
@@ -200,13 +204,27 @@ export default function App() {
   async function handleArchive(names: string[]) {
     const trimmed = repoPath.trim();
     try {
-      await fetch('/api/branches/archive', {
+      const res = await fetch('/api/branches/archive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: trimmed, branches: names }),
       });
-    } catch {
-      // ignore
+      const json = await res.json();
+      if (!res.ok) {
+        toast('error', 'Archive failed', json.error || json.message || 'Unknown error');
+      } else if (json.results) {
+        // bulk path — check per-branch results
+        const failed: string[] = json.results
+          .filter((r: { success: boolean; branch: string }) => !r.success)
+          .map((r: { branch: string }) => r.branch);
+        const ok = names.length - failed.length;
+        if (ok > 0) toast('success', `${ok} branch${ok !== 1 ? 'es' : ''} archived`);
+        if (failed.length > 0) toast('error', `${failed.length} branch${failed.length !== 1 ? 'es' : ''} failed to archive`, failed.join(', '));
+      } else {
+        toast('success', `Branch archived`, names[0]);
+      }
+    } catch (err) {
+      toast('error', 'Archive failed', err instanceof Error ? err.message : 'Connection error');
     }
     refreshBranches();
   }
@@ -214,46 +232,113 @@ export default function App() {
   async function handleBulkDelete(names: string[]) {
     const trimmed = repoPath.trim();
     try {
-      await fetch('/api/branches/bulk-delete', {
+      const res = await fetch('/api/branches/bulk-delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: trimmed, branches: names, force: false }),
       });
-    } catch {
-      // ignore
+      const json = await res.json();
+      if (!res.ok) {
+        toast('error', 'Bulk delete failed', json.error || json.message || 'Unknown error');
+      } else {
+        type BulkResult = { branch: string; success: boolean; message: string };
+        const results: BulkResult[] = json.results ?? [];
+        const succeeded = results.filter((r) => r.success);
+        const failed = results.filter((r) => !r.success);
+        if (succeeded.length > 0)
+          toast('success', `${succeeded.length} branch${succeeded.length !== 1 ? 'es' : ''} deleted`);
+        if (failed.length > 0) {
+          // Show modal for unmerged branches that need force delete
+          setForceDeleteCandidates(
+            failed.map((r) => ({ branch: r.branch, message: r.message }))
+          );
+        }
+      }
+    } catch (err) {
+      toast('error', 'Bulk delete failed', err instanceof Error ? err.message : 'Connection error');
     }
+    refreshBranches();
+  }
+
+  async function handleForceDeleteConfirm(names: string[]) {
+    const trimmed = repoPath.trim();
+    try {
+      const res = await fetch('/api/branches/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: trimmed, branches: names, force: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast('error', 'Force delete failed', json.error || json.message || 'Unknown error');
+      } else {
+        type BulkResult = { branch: string; success: boolean; message: string };
+        const results: BulkResult[] = json.results ?? [];
+        const succeeded = results.filter((r) => r.success);
+        const failed = results.filter((r) => !r.success);
+        if (succeeded.length > 0)
+          toast('success', `${succeeded.length} branch${succeeded.length !== 1 ? 'es' : ''} force deleted`);
+        if (failed.length > 0)
+          toast('error', `${failed.length} branch${failed.length !== 1 ? 'es' : ''} still failed`, failed.map((r) => r.branch).join(', '));
+      }
+    } catch (err) {
+      toast('error', 'Force delete failed', err instanceof Error ? err.message : 'Connection error');
+    }
+    setForceDeleteCandidates(null);
     refreshBranches();
   }
 
   async function handleUnarchive(names: string[]) {
     const trimmed = repoPath.trim();
+    let ok = 0;
+    let failed = 0;
     for (const name of names) {
       try {
-        await fetch('/api/branches/unarchive', {
+        const res = await fetch('/api/branches/unarchive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: trimmed, branch: name }),
         });
-      } catch {
-        // ignore
+        if (res.ok) ok++;
+        else {
+          const json = await res.json();
+          toast('error', `Failed to restore "${name}"`, json.error || json.message || 'Unknown error');
+          failed++;
+        }
+      } catch (err) {
+        toast('error', `Failed to restore "${name}"`, err instanceof Error ? err.message : 'Connection error');
+        failed++;
       }
     }
+    if (ok > 0) toast('success', `${ok} branch${ok !== 1 ? 'es' : ''} restored`);
+    void failed; // already toasted individually
     loadArchived();
     refreshBranches();
   }
 
   async function handleDeleteArchive(names: string[]) {
     const trimmed = repoPath.trim();
+    let ok = 0;
+    let failed = 0;
     for (const name of names) {
       try {
-        await fetch(
+        const res = await fetch(
           `/api/branches/archived?path=${encodeURIComponent(trimmed)}&branch=${encodeURIComponent(name)}`,
           { method: 'DELETE' }
         );
-      } catch {
-        // ignore
+        if (res.ok) ok++;
+        else {
+          const json = await res.json();
+          toast('error', `Failed to delete "${name}"`, json.error || json.message || 'Unknown error');
+          failed++;
+        }
+      } catch (err) {
+        toast('error', `Failed to delete "${name}"`, err instanceof Error ? err.message : 'Connection error');
+        failed++;
       }
     }
+    if (ok > 0) toast('success', `${ok} archived branch${ok !== 1 ? 'es' : ''} deleted permanently`);
+    void failed;
     loadArchived();
   }
 
@@ -480,6 +565,15 @@ export default function App() {
           forgottenbranches
         </a>
       </footer>
+
+      {forceDeleteCandidates && forceDeleteCandidates.length > 0 && (
+        <ForceDeleteModal
+          failedBranches={forceDeleteCandidates}
+          repoPath={repoPath.trim()}
+          onConfirm={handleForceDeleteConfirm}
+          onClose={() => setForceDeleteCandidates(null)}
+        />
+      )}
     </div>
   );
 }
