@@ -637,6 +637,7 @@ body {
 .branch-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: 0.84rem;
 }
 
@@ -707,10 +708,14 @@ body {
 }
 
 .branch-name-cell {
+  overflow: hidden;
+}
+
+.branch-name-inner {
   display: flex;
   align-items: center;
   gap: 7px;
-  max-width: 320px;
+  overflow: hidden;
 }
 
 .branch-icon {
@@ -796,7 +801,9 @@ body {
   white-space: nowrap;
   color: var(--text-secondary);
   font-size: 0.8rem;
-  display: flex;
+}
+.date-cell > span, .date-cell > div {
+  display: inline-flex;
   align-items: center;
   gap: 5px;
 }
@@ -1297,10 +1304,14 @@ body {
   padding: 10px 8px 10px 16px;
 }
 .arch-row td:nth-child(2) {
+  overflow: hidden;
+  max-width: 100%;
+}
+.arch-name-inner {
   display: flex;
   align-items: center;
   gap: 6px;
-  max-width: 100%;
+  overflow: hidden;
 }
 .arch-row td:last-child {
   text-align: center;

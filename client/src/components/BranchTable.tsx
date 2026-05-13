@@ -193,6 +193,15 @@ export default function BranchTable({
 
       <div className="table-scroll">
         <table className="branch-table">
+          <colgroup>
+            <col style={{ width: '36px' }} />
+            <col style={{ width: '28%' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '24%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '10%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th className="th-check">
