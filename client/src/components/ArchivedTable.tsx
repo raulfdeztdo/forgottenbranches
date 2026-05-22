@@ -8,7 +8,7 @@ import {
   Square,
   CheckSquare,
 } from 'lucide-react';
-import { ArchivedBranch } from '../types';
+import { ArchivedBranch } from '@forgottenbranches/types';
 
 interface Props {
   branches: ArchivedBranch[];

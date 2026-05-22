@@ -15,10 +15,21 @@
     "build:server": "pnpm --filter forgottenbranches-server run build",
     "build": "pnpm run build:client && pnpm run build:server",
     "start": "pnpm --filter forgottenbranches-server run start",
-    "install:all": "pnpm install"
+    "install:all": "pnpm install",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:all": "vitest run && playwright test"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0"
+    "@playwright/test": "^1.60.0",
+    "@vitest/coverage-v8": "^4.1.7",
+    "@vitest/ui": "^4.1.7",
+    "concurrently": "^9.1.0",
+    "vitest": "^4.1.7"
   },
   "dependencies": {
     "forgottenbranches": "link:"

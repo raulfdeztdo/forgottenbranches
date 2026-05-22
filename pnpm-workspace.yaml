@@ -1,6 +1,7 @@
 packages:
   - server
   - client
+  - shared
 allowBuilds:
   esbuild: true
 overrides:

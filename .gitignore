@@ -14,3 +14,8 @@ yarn.lock
 
 # OpenCode config local (contiene API keys — no commitear)
 opencode.json
+
+# Test artifacts
+coverage/
+playwright-report/
+test-results/

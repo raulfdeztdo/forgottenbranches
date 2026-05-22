@@ -5,7 +5,7 @@ import {
   Clock,
   X,
 } from 'lucide-react';
-import { BranchesResult, ArchivedBranch } from './types';
+import { BranchesResult, ArchivedBranch } from '@forgottenbranches/types';
 import { STATUS_COLORS } from './statusConfig';
 import BranchTable from './components/BranchTable';
 import ArchivedTable from './components/ArchivedTable';

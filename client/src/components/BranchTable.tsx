@@ -7,7 +7,7 @@ import {
   Square,
   CheckSquare,
 } from 'lucide-react';
-import { BranchInfo } from '../types';
+import { BranchInfo } from '@forgottenbranches/types';
 import BranchDetail from './BranchDetail';
 
 interface Props {

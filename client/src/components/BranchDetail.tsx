@@ -17,7 +17,7 @@ import {
   Square,
   CheckSquare,
 } from 'lucide-react';
-import { BranchInfo } from '../types';
+import { BranchInfo } from '@forgottenbranches/types';
 import { STATUS_COLORS, STATUS_LABELS } from '../statusConfig';
 import { useToast } from './ToastContext';
 

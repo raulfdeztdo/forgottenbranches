@@ -32,6 +32,8 @@
     <img src="https://img.shields.io/badge/Node.js-22-339933?style=flat&logo=nodedotjs&logoColor=white" alt="Node.js" />
     <img src="https://img.shields.io/badge/pnpm-F69220?style=flat&logo=pnpm&logoColor=white" alt="pnpm" />
     <img src="https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white" alt="Git" />
+    <img src="https://img.shields.io/badge/Vitest-4-6E9F18?style=flat&logo=vitest&logoColor=white" alt="Vitest" />
+    <img src="https://img.shields.io/badge/Playwright-45ba4b?style=flat&logo=playwright&logoColor=white" alt="Playwright" />
   </p>
 
   <br />
@@ -141,6 +143,36 @@ Al abrirse el navegador, pegas la ruta de un repositorio git, pulsas **Scan Bran
 - **Historial de proyectos** — las rutas escaneadas se guardan en `localStorage` y aparecen como sugerencias al hacer foco en el campo de búsqueda.
 - **Filtros** — por nombre de rama y por estado mediante pills interactivas.
 - **Ordenación** — por nombre, fecha de commit, antigüedad o estado (por defecto: activas primero).
+
+## Testing
+
+El proyecto incluye una suite completa de tests automatizados que cubren backend, frontend, y flujos end-to-end.
+
+```bash
+pnpm test              # Unit + integration tests (Vitest)
+pnpm test:watch        # Modo watch
+pnpm test:ui           # Interfaz visual de Vitest
+pnpm test:coverage     # Reporte de cobertura
+pnpm test:e2e          # Tests end-to-end (Playwright)
+pnpm test:e2e:ui       # Playwright UI
+pnpm test:all          # Todos los tests
+```
+
+### Estructura de tests
+
+| Capa | Tecnología | Ubicación |
+|---|---|---|
+| Lógica git (`git.ts`) | Vitest + mock `child_process` | `server/src/git.test.ts` |
+| API REST (`app.ts`) | Vitest + supertest | `server/src/app.test.ts` |
+| Componentes React | Vitest + Testing Library + jsdom | `client/src/components/*.test.tsx` |
+| End-to-end | Playwright (Chromium) | `e2e/*.spec.ts` |
+
+### Convenciones
+
+- Los tests se **co-localizan** con el código fuente (`src/foo.ts` → `src/foo.test.ts`)
+- **TDD siempre que sea posible**: escribe el test antes del código
+- Antes de un PR: `pnpm run build && pnpm test && pnpm test:e2e`
+- Más información en `.agents/skills/testing/SKILL.md`
 
 ## Desarrollo
 
