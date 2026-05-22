@@ -352,7 +352,7 @@ describe('archiveBranch', () => {
     const result = await archiveBranch(REPO, 'feature/to-archive');
     expect(result.success).toBe(true);
     expect(result.message).toContain('archived as archive/feature/to-archive');
-    expectGitCall(['tag', '-a', 'archive/feature/to-archive', 'feature/to-archive', '-m', 'archive/feature/to-archive']);
+    expectGitCall(['tag', '-a', '-f', 'archive/feature/to-archive', 'feature/to-archive', '-m', 'archive/feature/to-archive']);
     expectGitCall(['branch', '-D', 'feature/to-archive']);
   });
 

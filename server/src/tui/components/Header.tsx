@@ -33,7 +33,7 @@ export default function Header({ repoPath, focused, loading, onPathChange, onSca
             />
           ) : (
             <Text color={repoPath ? COLORS.text : COLORS.textSecondary}>
-              {repoPath || 'Paste repo path...'}
+              {repoPath || 'Press / to enter a repo path'}
             </Text>
           )}
         </Box>

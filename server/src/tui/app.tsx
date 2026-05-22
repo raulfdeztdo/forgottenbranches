@@ -25,7 +25,9 @@ interface Props {
 export default function TuiApp({ initialPath = '' }: Props) {
   const { exit } = useApp();
   const [repoPath, setRepoPath] = useState(initialPath);
-  const [focusedSection, setFocusedSection] = useState<'input' | 'filters' | 'list'>('list');
+  const [focusedSection, setFocusedSection] = useState<'input' | 'filters' | 'list'>(
+    initialPath ? 'list' : 'input'
+  );
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedBranches, setSelectedBranches] = useState<Set<string>>(new Set());
   const [expandedBranch, setExpandedBranch] = useState<string | null>(null);

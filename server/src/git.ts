@@ -285,7 +285,7 @@ export async function archiveBranch(
 
   try {
     const tagName = `archive/${branchName}`;
-    await git(repoPath, ['tag', '-a', tagName, branchName, '-m', `archive/${branchName}`]);
+    await git(repoPath, ['tag', '-a', '-f', tagName, branchName, '-m', `archive/${branchName}`]);
     await git(repoPath, ['branch', '-D', branchName]);
     return { success: true, message: `Branch "${branchName}" archived as ${tagName}` };
   } catch (err: unknown) {
