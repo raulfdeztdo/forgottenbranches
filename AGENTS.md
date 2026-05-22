@@ -9,7 +9,7 @@ Lee este fichero antes de tocar cualquier cosa.
 
 **Forgotten Branches** es una herramienta CLI + interfaz web local que escanea repositorios git y clasifica las ramas locales según su estado (activa, olvidada, huérfana, mergeada, abandonada). Todo ocurre en local; no hay servidor externo, base de datos ni autenticación.
 
-Stack: TypeScript · Node.js 22 · Express 4 · React 18 · Vite 6 · Git CLI
+Stack: TypeScript · Node.js 22 · Express 4 · React 18 · Vite 6 · Vitest 4 · Playwright · Git CLI
 
 ---
 
@@ -23,22 +23,26 @@ forgottenbranches/
 │   ├── src/
 │   │   ├── components/         # Componentes React reutilizables
 │   │   ├── hooks/              # Custom hooks
-│   │   ├── types/              # Tipos TypeScript compartidos cliente
 │   │   └── main.tsx            # Entrada de la SPA
 │   ├── index.html
 │   └── vite.config.ts
 ├── server/                     # Backend Express
 │   ├── src/
-│   │   ├── routes/             # Endpoints REST
-│   │   ├── services/           # Lógica de negocio (git CLI)
-│   │   └── index.ts            # Entrada del servidor
+│   │   ├── app.ts              # Rutas REST y middleware Express
+│   │   ├── git.ts              # Lógica de negocio (git CLI)
+│   │   ├── cli.ts              # Entry point producción
+│   │   └── index.ts            # Entry point desarrollo
 │   └── tsconfig.json
+├── shared/                     # Tipos TypeScript compartidos
+│   └── src/
+│       └── index.ts            # BranchInfo, BranchesResult, etc.
+├── e2e/                        # Tests end-to-end con Playwright
 ├── .agents/
 │   └── skills/                 # Skills disponibles para agentes IA
 ├── AGENTS.md                   # Este fichero
 ├── opencode.jsonc              # Plantilla de configuración OpenCode (commiteable)
 ├── opencode.json               # Config local con secrets (en .gitignore)
-├── package.json                # Scripts raíz (dev, build, install:all)
+├── package.json                # Scripts raíz (dev, build, test, install:all)
 ├── install.sh                  # Instalador global
 └── update.sh                   # Actualizador
 ```
@@ -66,9 +70,61 @@ forgottenbranches/
 npm run dev           # Levanta Express + Vite en modo desarrollo
 npm run build         # Compila cliente y servidor
 npm run install:all   # Instala dependencias de server/ y client/
+npm test              # Unit tests + integration tests (Vitest)
+npm run test:watch    # Tests en modo watch
+npm run test:ui       # UI visual de Vitest
+npm run test:coverage # Tests con reporte de cobertura
+npm run test:e2e      # Tests end-to-end (Playwright)
+npm run test:all      # Todos los tests (unit + integration + e2e)
 ./install.sh          # Instalación global (registra el comando `forgottenbranches`)
 ./update.sh           # Actualiza dependencias y recompila
 ```
+
+---
+
+## Testing — obligatorio
+
+**En cada PR con cambios de código deben añadirse tests.** Sin excepción.
+
+### Antes de empezar a desarrollar
+
+1. Carga la skill `testing` para conocer los patrones y convenciones.
+2. Lee los tests existentes relacionados con el código que vas a tocar.
+3. Ejecuta `pnpm test` para ver el estado actual.
+
+### Durante el desarrollo
+
+1. Escribe tests **antes** de implementar el cambio (TDD cuando sea posible).
+2. Si tocas `git.ts` → añade tests en `server/src/git.test.ts`.
+3. Si tocas `app.ts` → añade tests en `server/src/app.test.ts`.
+4. Si creas o modificas un componente React → añade tests en `client/src/components/Nombre.test.tsx`.
+5. Si añades un nuevo flujo de UI → añade un test e2e en `e2e/`.
+
+### Antes de commitear o abrir PR
+
+```bash
+pnpm run build        # Verifica que compila sin errores
+pnpm test             # Todos los tests deben pasar (unit + integration)
+pnpm test:e2e         # Tests end-to-end deben pasar
+```
+
+**Un PR no puede mergearse si algún test falla o si no incluye tests para el nuevo código.**
+
+### Stack de testing
+
+| Herramienta | Uso |
+|---|---|
+| **Vitest 4** | Unit + integration runner |
+| **@testing-library/react** | Tests de componentes React |
+| **supertest** | Tests HTTP de la API Express |
+| **Playwright** | Tests end-to-end (Chromium) |
+
+### Patrón de archivos
+
+- `server/src/*.test.ts` — Tests de backend (entorno node)
+- `client/src/**/*.test.tsx` — Tests de componentes React (entorno jsdom)
+- `e2e/*.spec.ts` — Tests end-to-end con Playwright
+- Los test files están excluidos de la compilación TypeScript (`tsconfig.json` → `exclude`)
 
 ---
 
@@ -115,6 +171,7 @@ npm run install:all   # Instala dependencias de server/ y client/
 
 | Skill                     | Cuándo usarla                                                  |
 |---------------------------|----------------------------------------------------------------|
+| `testing`                 | Al escribir, modificar o ejecutar tests; antes de cualquier PR |
 | `accessibility`           | Al añadir o modificar elementos interactivos en la UI          |
 | `bash-defensive-patterns` | Al editar `install.sh`, `update.sh` o cualquier script shell   |
 | `frontend-design`         | Al crear componentes nuevos o rediseñar la interfaz            |

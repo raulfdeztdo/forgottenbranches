@@ -1,44 +1,22 @@
 import { execFile } from 'child_process';
 import { promisify } from 'util';
+import type {
+  MergeInfo,
+  BranchInfo,
+  ArchivedBranch,
+  BranchesResult,
+  BranchStatus,
+} from '@forgottenbranches/types';
+
+export type {
+  MergeInfo,
+  BranchInfo,
+  ArchivedBranch,
+  BranchesResult,
+  BranchStatus,
+};
 
 const execFileAsync = promisify(execFile);
-
-export interface MergeInfo {
-  mergedAt: string;
-  mergeCommit: string;
-  mergeCommitMessage: string;
-}
-
-export interface BranchInfo {
-  name: string;
-  upstream: string | null;
-  upstreamGone: boolean;
-  lastCommitDate: string;
-  lastCommitHash: string;
-  lastCommitAuthor: string;
-  lastCommitMessage: string;
-  isMergedIntoMain: boolean;
-  mergeInfo: MergeInfo | null;
-  daysSinceLastCommit: number;
-  lastCheckoutDate: string | null;
-  status: 'active' | 'forgotten' | 'merged' | 'orphan' | 'abandoned';
-}
-
-export interface ArchivedBranch {
-  name: string;
-  archivedAt: string;
-  commitHash: string;
-  commitAuthor: string;
-  commitDate: string;
-  commitMessage: string;
-}
-
-export interface BranchesResult {
-  branches: BranchInfo[];
-  mainBranch: string;
-  totalLocal: number;
-  totalForgotten: number;
-}
 
 async function git(repoPath: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync('git', args, {
@@ -139,7 +117,7 @@ function computeStatus(
   upstreamGone: boolean,
   daysSinceCommit: number,
   upstream: string | null
-): BranchInfo['status'] {
+): BranchStatus {
   if (upstreamGone && isMerged) return 'forgotten';
   if (upstreamGone) return 'orphan';
   if (isMerged) return 'merged';

@@ -4,6 +4,8 @@ export interface MergeInfo {
   mergeCommitMessage: string;
 }
 
+export type BranchStatus = 'active' | 'forgotten' | 'merged' | 'orphan' | 'abandoned';
+
 export interface BranchInfo {
   name: string;
   upstream: string | null;
@@ -16,7 +18,7 @@ export interface BranchInfo {
   mergeInfo: MergeInfo | null;
   daysSinceLastCommit: number;
   lastCheckoutDate: string | null;
-  status: 'active' | 'forgotten' | 'merged' | 'orphan' | 'abandoned';
+  status: BranchStatus;
 }
 
 export interface ArchivedBranch {
