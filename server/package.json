@@ -2,20 +2,25 @@
   "name": "forgottenbranches-server",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc && node -e \"const fs=require('fs');const p=require('path');const s='../client/dist';const d='dist/public';if(fs.existsSync(s)){fs.cpSync(s,d,{recursive:true});console.log('  Copied client/dist → dist/public')}else{console.log('  Warning: client/dist not found. Run client build first.')}\"",
+    "build": "tsc && node -e \"import { cpSync, existsSync } from 'fs';const s='../client/dist';const d='dist/public';if(existsSync(s)){cpSync(s,d,{recursive:true});console.log('  Copied client/dist → dist/public')}else{console.log('  Warning: client/dist not found. Run client build first.')}\"",
     "start": "node dist/cli.js"
   },
   "dependencies": {
     "@forgottenbranches/types": "workspace:*",
     "cors": "^2.8.5",
-    "express": "^4.21.1"
+    "express": "^4.21.1",
+    "ink": "^7.0.3",
+    "ink-text-input": "^6.0.0",
+    "react": "^18.3.1"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.0",
+    "@types/react": "^18.3.28",
     "@types/supertest": "^7.2.0",
     "supertest": "^7.2.2",
     "tsx": "^4.19.2",

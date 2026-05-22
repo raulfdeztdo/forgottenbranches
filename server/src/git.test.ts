@@ -27,7 +27,7 @@ import {
   deleteArchivedBranch,
   getArchivedBranches,
   deleteBranches,
-} from './git';
+} from './git.js';
 
 const REPO = '/fake/repo';
 
