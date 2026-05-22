@@ -154,12 +154,14 @@ describe('DELETE /api/branches', () => {
   });
 
   it('handles error when delete fails', async () => {
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockDeleteBranch.mockRejectedValue(new Error('Git error'));
 
     const res = await request(app())
       .delete(`/api/branches?path=${encodeURIComponent(REPO)}&branch=feature/error`);
 
     expect(res.status).toBe(500);
+    consoleSpy.mockRestore();
   });
 });
 

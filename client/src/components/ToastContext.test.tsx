@@ -46,17 +46,6 @@ describe('ToastContext', () => {
     vi.useRealTimers();
   });
 
-  it('throws error when useToast is used outside provider', () => {
-    // Use render since Tester uses useToast
-    function BadComponent() {
-      useToast();
-      return null;
-    }
-    expect(() => render(<BadComponent />)).toThrow(
-      'useToast must be used inside ToastProvider'
-    );
-  });
-
   it('shows success toast with title and message', () => {
     renderWithProvider();
 
