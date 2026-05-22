@@ -25,7 +25,7 @@ interface Props {
 export default function TuiApp({ initialPath = '' }: Props) {
   const { exit } = useApp();
   const [repoPath, setRepoPath] = useState(initialPath);
-  const [focusedSection, setFocusedSection] = useState<'input' | 'filters' | 'list'>('input');
+  const [focusedSection, setFocusedSection] = useState<'input' | 'filters' | 'list'>('list');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedBranches, setSelectedBranches] = useState<Set<string>>(new Set());
   const [expandedBranch, setExpandedBranch] = useState<string | null>(null);
@@ -43,6 +43,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
     setSelectedIndex(0);
     setExpandedBranch(null);
     setSelectedBranches(new Set());
+    setFocusedSection('list');
     scan();
   }, [scan]);
 
@@ -87,21 +88,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
   });
 
   useKeyboard((input, key) => {
-    if (confirm) {
-      if (key.escape || input === 'n') {
-        setConfirm(null);
-        return;
-      }
-      if (input === 'y' || key.return) {
-        const { type, branch } = confirm;
-        setConfirm(null);
-        if (type === 'archive') handleArchive(branch);
-        else handleDelete(branch);
-        return;
-      }
-      return;
-    }
-
+    // Global keys (work from any section)
     if (key.escape || input === 'q') {
       exit();
       return;
@@ -112,17 +99,78 @@ export default function TuiApp({ initialPath = '' }: Props) {
       return;
     }
 
-    if (input === 'f') {
-      setFocusedSection((prev) => (prev === 'filters' ? 'list' : 'filters'));
+    if (confirm) {
+      if (key.escape || input === 'n') {
+        setConfirm(null);
+      }
+      if (input === 'y' || key.return) {
+        const { type, branch } = confirm;
+        setConfirm(null);
+        if (type === 'archive') handleArchive(branch);
+        else handleDelete(branch);
+      }
       return;
     }
 
-    if (input === '/') {
+    // Section-specific keys
+    if (focusedSection === 'input') {
+      // Only Escape and global 'q' are handled (above). Enter triggers onSubmit in TextInput.
+      // Space, '/', and 'f' are captured by TextInput.
+      return;
+    }
+
+    if (input === '/' || input === 'i') {
       setFocusedSection('input');
       return;
     }
 
-    if (input === 'a' && focusedSection === 'list') {
+    if (focusedSection === 'filters') {
+      if (key.return) {
+        setFocusedSection('list');
+        return;
+      }
+      if (key.upArrow) {
+        const idx = STATUS_FILTERS.indexOf(statusFilter as typeof STATUS_FILTERS[number]);
+        setStatusFilter(
+          idx <= 0 ? STATUS_FILTERS[STATUS_FILTERS.length - 1] : STATUS_FILTERS[idx - 1]
+        );
+        return;
+      }
+      if (key.downArrow) {
+        const idx = STATUS_FILTERS.indexOf(statusFilter as typeof STATUS_FILTERS[number]);
+        setStatusFilter(
+          idx >= STATUS_FILTERS.length - 1 ? STATUS_FILTERS[0] : STATUS_FILTERS[idx + 1]
+        );
+        return;
+      }
+      if (key.leftArrow) {
+        const idx = SORT_FIELDS.indexOf(sortField as typeof SORT_FIELDS[number]);
+        setSortField(
+          idx <= 0 ? SORT_FIELDS[SORT_FIELDS.length - 1] : SORT_FIELDS[idx - 1]
+        );
+        return;
+      }
+      if (key.rightArrow) {
+        const idx = SORT_FIELDS.indexOf(sortField as typeof SORT_FIELDS[number]);
+        setSortField(
+          idx >= SORT_FIELDS.length - 1 ? SORT_FIELDS[0] : SORT_FIELDS[idx + 1]
+        );
+        return;
+      }
+      if (input === 'f') {
+        setFocusedSection('list');
+        return;
+      }
+      return;
+    }
+
+    // Section: list
+    if (input === 'f') {
+      setFocusedSection('filters');
+      return;
+    }
+
+    if (input === 'a') {
       const branch = filteredBranches[selectedIndex];
       if (branch) {
         setConfirm({ type: 'archive', branch: branch.name });
@@ -130,7 +178,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
       return;
     }
 
-    if (input === 'd' && focusedSection === 'list') {
+    if (input === 'd') {
       const branch = filteredBranches[selectedIndex];
       if (branch) {
         setConfirm({ type: 'delete', branch: branch.name });
@@ -139,88 +187,38 @@ export default function TuiApp({ initialPath = '' }: Props) {
     }
 
     if (key.return) {
-      if (focusedSection === 'input') {
-        handleScan();
-        return;
-      }
-      if (focusedSection === 'list') {
-        const branch = filteredBranches[selectedIndex];
-        if (branch) {
-          setExpandedBranch((prev) =>
-            prev === branch.name ? null : branch.name
-          );
-        }
-        return;
-      }
-      return;
-    }
-
-    if (key.upArrow) {
-      if (focusedSection === 'list' && filteredBranches.length > 0) {
-        setSelectedIndex((prev) =>
-          prev <= 0 ? filteredBranches.length - 1 : prev - 1
-        );
-      }
-      if (focusedSection === 'filters') {
-        // Cycle status filter
-        const idx = STATUS_FILTERS.indexOf(statusFilter as typeof STATUS_FILTERS[number]);
-        setStatusFilter(
-          idx <= 0
-            ? STATUS_FILTERS[STATUS_FILTERS.length - 1]
-            : STATUS_FILTERS[idx - 1]
+      const branch = filteredBranches[selectedIndex];
+      if (branch) {
+        setExpandedBranch((prev) =>
+          prev === branch.name ? null : branch.name
         );
       }
       return;
     }
 
-    if (key.downArrow) {
-      if (focusedSection === 'list' && filteredBranches.length > 0) {
-        setSelectedIndex((prev) =>
-          prev >= filteredBranches.length - 1 ? 0 : prev + 1
-        );
-      }
-      if (focusedSection === 'filters') {
-        const idx = STATUS_FILTERS.indexOf(statusFilter as typeof STATUS_FILTERS[number]);
-        setStatusFilter(
-          idx >= STATUS_FILTERS.length - 1
-            ? STATUS_FILTERS[0]
-            : STATUS_FILTERS[idx + 1]
-        );
-      }
-      return;
-    }
-
-    if (key.leftArrow && focusedSection === 'filters') {
-      const idx = SORT_FIELDS.indexOf(sortField as typeof SORT_FIELDS[number]);
-      setSortField(
-        idx <= 0
-          ? SORT_FIELDS[SORT_FIELDS.length - 1]
-          : SORT_FIELDS[idx - 1]
+    if (key.upArrow && filteredBranches.length > 0) {
+      setSelectedIndex((prev) =>
+        prev <= 0 ? filteredBranches.length - 1 : prev - 1
       );
       return;
     }
 
-    if (key.rightArrow && focusedSection === 'filters') {
-      const idx = SORT_FIELDS.indexOf(sortField as typeof SORT_FIELDS[number]);
-      setSortField(
-        idx >= SORT_FIELDS.length - 1
-          ? SORT_FIELDS[0]
-          : SORT_FIELDS[idx + 1]
+    if (key.downArrow && filteredBranches.length > 0) {
+      setSelectedIndex((prev) =>
+        prev >= filteredBranches.length - 1 ? 0 : prev + 1
       );
       return;
     }
 
     if (input === ' ') {
-      if (focusedSection === 'list') {
-        const branch = filteredBranches[selectedIndex];
-        if (branch) {
-          setSelectedBranches((prev) => {
-            const next = new Set(prev);
-            if (next.has(branch.name)) next.delete(branch.name);
-            else next.add(branch.name);
-            return next;
-          });
-        }
+      const branch = filteredBranches[selectedIndex];
+      if (branch) {
+        setSelectedBranches((prev) => {
+          const next = new Set(prev);
+          if (next.has(branch.name)) next.delete(branch.name);
+          else next.add(branch.name);
+          return next;
+        });
       }
       return;
     }

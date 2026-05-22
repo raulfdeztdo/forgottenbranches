@@ -22,6 +22,7 @@ async function git(repoPath: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync('git', args, {
     cwd: repoPath,
     maxBuffer: 10 * 1024 * 1024,
+    env: { ...process.env },
   });
   return stdout.trim();
 }

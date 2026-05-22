@@ -66,10 +66,8 @@ function fixtureTagsDetailed(lines: string[]): string {
   return lines.join('\n');
 }
 
-const GIT_OPTS = { cwd: REPO, maxBuffer: 10 * 1024 * 1024 };
-
 function expectGitCall(args: string[]) {
-  expect(execFileMock).toHaveBeenCalledWith('git', args, GIT_OPTS, expect.any(Function));
+  expect(execFileMock).toHaveBeenCalledWith('git', args, expect.objectContaining({ cwd: REPO }), expect.any(Function));
 }
 
 // ── detectMainBranch ──
