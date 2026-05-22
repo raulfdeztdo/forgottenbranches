@@ -18,6 +18,10 @@ vi.mock('readline', () => ({
 const mockRender = vi.fn().mockReturnValue({ unmount: vi.fn() });
 vi.mock('ink', () => ({ render: (...args: unknown[]) => mockRender(...args) }));
 
+vi.mock('react', () => ({
+  createElement: (...args: unknown[]) => args,
+}));
+
 const MockTuiApp = vi.fn();
 vi.mock('./tui/app.js', () => ({ default: MockTuiApp }));
 
@@ -87,7 +91,8 @@ describe('main() argument parsing', () => {
 
     expect(createInterfaceMock).not.toHaveBeenCalled();
     expect(mockRender).toHaveBeenCalled();
-    expect(MockTuiApp).toHaveBeenCalledWith({ initialPath: undefined });
+    // createElement returns [component, props], render receives that
+    expect(mockRender).toHaveBeenCalledWith([MockTuiApp, { initialPath: undefined }]);
   });
 
   it('showPrompt returns web for input "1"', async () => {
@@ -121,7 +126,7 @@ describe('main() argument parsing', () => {
   it('extracts repo path from args', async () => {
     await main(['node', 'cli', '--tui', '/my/repo']);
 
-    expect(MockTuiApp).toHaveBeenCalledWith({ initialPath: '/my/repo' });
+    expect(mockRender).toHaveBeenCalledWith([MockTuiApp, { initialPath: '/my/repo' }]);
   });
 
   it('extracts repo path with --web flag', async () => {
