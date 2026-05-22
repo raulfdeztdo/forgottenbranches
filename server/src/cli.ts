@@ -72,13 +72,13 @@ async function startWebMode(repoPath?: string) {
 
 async function startTuiMode(repoPath?: string) {
   const { render } = await import('ink');
+  const { createElement } = await import('react');
   const { default: TuiApp } = await import('./tui/app.js');
-  const { unmount } = render(TuiApp({ initialPath: repoPath }));
+  const { unmount } = render(createElement(TuiApp, { initialPath: repoPath }));
   process.on('SIGINT', () => {
     unmount();
     process.exit(0);
   });
-  // Ink handles the terminal cleanup
 }
 
 // ── Prompt mode ──
