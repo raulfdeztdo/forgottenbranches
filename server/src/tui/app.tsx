@@ -149,6 +149,46 @@ export default function TuiApp({ initialPath = '' }: Props) {
     }
   }, [repoPath, mainBranch, selectedBranches, scan]);
 
+  const handleBulkRestore = useCallback(async () => {
+    if (selectedBranches.size === 0) return;
+    const names = [...selectedBranches];
+    let ok = 0;
+    let fail = 0;
+    for (const name of names) {
+      try {
+        const result = await restoreArchivedBranch(repoPath, name);
+        if (result.success) ok++;
+        else fail++;
+      } catch {
+        fail++;
+      }
+    }
+    if (fail === 0) showToast('success', `Restored ${ok} branch(es)`);
+    else showToast('error', `${fail}/${names.length} failed to restore`);
+    setSelectedBranches(new Set());
+    scan();
+  }, [repoPath, selectedBranches, scan]);
+
+  const handleBulkPermanentDelete = useCallback(async () => {
+    if (selectedBranches.size === 0) return;
+    const names = [...selectedBranches];
+    let ok = 0;
+    let fail = 0;
+    for (const name of names) {
+      try {
+        const result = await deleteArchivedBranch(repoPath, name);
+        if (result.success) ok++;
+        else fail++;
+      } catch {
+        fail++;
+      }
+    }
+    if (fail === 0) showToast('success', `Deleted ${ok} archive(s)`);
+    else showToast('error', `${fail}/${names.length} failed`);
+    setSelectedBranches(new Set());
+    scan();
+  }, [repoPath, selectedBranches, scan]);
+
   const filteredBranches = branches.filter((b) => {
     if (statusFilter !== 'all' && b.status !== statusFilter) return false;
     if (searchQuery) {
@@ -175,6 +215,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
       setShowArchived((prev) => !prev);
       setSelectedIndex(0);
       setExpandedBranch(null);
+      setSelectedBranches(new Set());
       return;
     }
 
@@ -275,12 +316,20 @@ export default function TuiApp({ initialPath = '' }: Props) {
 
     // Archived-specific actions
     if (input === 'r' && showArchived) {
+      if (selectedBranches.size > 0) {
+        handleBulkRestore();
+        return;
+      }
       const branch = archived[selectedIndex];
       if (branch) handleRestore(branch.name);
       return;
     }
 
     if (input === 'D' && showArchived) {
+      if (selectedBranches.size > 0) {
+        handleBulkPermanentDelete();
+        return;
+      }
       const branch = archived[selectedIndex];
       if (branch) handlePermanentDelete(branch.name);
       return;
@@ -358,9 +407,10 @@ export default function TuiApp({ initialPath = '' }: Props) {
           Archived ({archived.length})
         </Text>
         <Text dimColor>Tab to switch</Text>
-        {selectedBranches.size > 0 && !showArchived && (
+        {selectedBranches.size > 0 && (
           <Text color={COLORS.warning}>
-            {selectedBranches.size} selected — a/d to bulk archive/delete
+            {selectedBranches.size} selected{' '}
+            {showArchived ? '— r/D to bulk restore/delete' : '— a/d to bulk archive/delete'}
           </Text>
         )}
       </Box>
