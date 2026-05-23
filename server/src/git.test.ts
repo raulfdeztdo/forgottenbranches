@@ -27,7 +27,7 @@ import {
   deleteArchivedBranch,
   getArchivedBranches,
   deleteBranches,
-} from './git';
+} from './git.js';
 
 const REPO = '/fake/repo';
 
@@ -66,10 +66,8 @@ function fixtureTagsDetailed(lines: string[]): string {
   return lines.join('\n');
 }
 
-const GIT_OPTS = { cwd: REPO, maxBuffer: 10 * 1024 * 1024 };
-
 function expectGitCall(args: string[]) {
-  expect(execFileMock).toHaveBeenCalledWith('git', args, GIT_OPTS, expect.any(Function));
+  expect(execFileMock).toHaveBeenCalledWith('git', args, expect.objectContaining({ cwd: REPO }), expect.any(Function));
 }
 
 // ── detectMainBranch ──
@@ -116,7 +114,7 @@ describe('getBranches', () => {
     expect(result.branches).toEqual([]);
     expect(result.totalLocal).toBe(0);
     expect(result.totalForgotten).toBe(0);
-    expect(execFileMock).toHaveBeenCalledTimes(4);
+    expect(execFileMock).toHaveBeenCalledTimes(5);
   });
 
   it('classifies an active branch correctly', async () => {
@@ -245,7 +243,8 @@ describe('getBranches', () => {
         ])
       )
       .mockReturnValueOnce('feature/merged\nmain\n')
-      .mockReturnValueOnce('');
+      .mockReturnValueOnce('')
+      .mockReturnValueOnce('* feature/merged\n  main\n'); // detectCurrentBranch
     // Merge info lookup
     execFileMock.mockReturnValueOnce(
       'def5678|2025-06-02 10:00:00 +0000|Merge branch feature/merged'
@@ -354,7 +353,7 @@ describe('archiveBranch', () => {
     const result = await archiveBranch(REPO, 'feature/to-archive');
     expect(result.success).toBe(true);
     expect(result.message).toContain('archived as archive/feature/to-archive');
-    expectGitCall(['tag', '-a', 'archive/feature/to-archive', 'feature/to-archive', '-m', 'archive/feature/to-archive']);
+    expectGitCall(['tag', '-a', '-f', 'archive/feature/to-archive', 'feature/to-archive', '-m', 'archive/feature/to-archive']);
     expectGitCall(['branch', '-D', 'feature/to-archive']);
   });
 

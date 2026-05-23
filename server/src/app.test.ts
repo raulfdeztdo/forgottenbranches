@@ -56,7 +56,7 @@ vi.mock('./git', () => ({
   getArchivedBranches: (...args: unknown[]) => mockGetArchivedBranches(...args),
 }));
 
-import { createApp } from './app';
+import { createApp } from './app.js';
 
 const REPO = '/fake/repo';
 

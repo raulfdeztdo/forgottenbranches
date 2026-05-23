@@ -33,6 +33,7 @@ export interface ArchivedBranch {
 export interface BranchesResult {
   branches: BranchInfo[];
   mainBranch: string;
+  currentBranch: string | null;
   totalLocal: number;
   totalForgotten: number;
 }

@@ -22,6 +22,7 @@ async function git(repoPath: string, args: string[]): Promise<string> {
   const { stdout } = await execFileAsync('git', args, {
     cwd: repoPath,
     maxBuffer: 10 * 1024 * 1024,
+    env: { ...process.env },
   });
   return stdout.trim();
 }
@@ -32,6 +33,20 @@ export async function detectMainBranch(repoPath: string): Promise<string> {
   if (names.includes('main')) return 'main';
   if (names.includes('master')) return 'master';
   return names[0] || 'main';
+}
+
+export async function detectCurrentBranch(repoPath: string): Promise<string | null> {
+  try {
+    const output = await git(repoPath, ['branch']);
+    for (const line of output.split('\n')) {
+      if (line.startsWith('* ')) {
+        return line.substring(2).trim();
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 async function getMergedBranches(
@@ -130,7 +145,7 @@ export async function getBranches(
   repoPath: string
 ): Promise<BranchesResult> {
   const mainBranch = await detectMainBranch(repoPath);
-  const [rawBranches, mergedSet, checkoutDates] = await Promise.all([
+  const [rawBranches, mergedSet, checkoutDates, currentBranch] = await Promise.all([
     git(repoPath, [
       'for-each-ref',
       '--sort=-committerdate',
@@ -139,12 +154,14 @@ export async function getBranches(
     ]),
     getMergedBranches(repoPath, mainBranch),
     getCheckoutDates(repoPath),
+    detectCurrentBranch(repoPath),
   ]);
 
   if (!rawBranches) {
     return {
       branches: [],
       mainBranch,
+      currentBranch,
       totalLocal: 0,
       totalForgotten: 0,
     };
@@ -217,6 +234,7 @@ export async function getBranches(
   return {
     branches,
     mainBranch,
+    currentBranch,
     totalLocal: branches.length,
     totalForgotten,
   };
@@ -284,7 +302,7 @@ export async function archiveBranch(
 
   try {
     const tagName = `archive/${branchName}`;
-    await git(repoPath, ['tag', '-a', tagName, branchName, '-m', `archive/${branchName}`]);
+    await git(repoPath, ['tag', '-a', '-f', tagName, branchName, '-m', `archive/${branchName}`]);
     await git(repoPath, ['branch', '-D', branchName]);
     return { success: true, message: `Branch "${branchName}" archived as ${tagName}` };
   } catch (err: unknown) {
