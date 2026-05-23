@@ -48,6 +48,12 @@ export default function TuiApp({ initialPath = '' }: Props) {
   const mainBranch = data?.mainBranch;
   const protectedBranches = new Set([mainBranch, currentBranch].filter(Boolean));
 
+  function getProtectedReason(name: string): string {
+    if (name === currentBranch) return 'current checked-out branch';
+    if (name === mainBranch) return 'main branch';
+    return '';
+  }
+
   const handleScan = useCallback(() => {
     setSelectedIndex(0);
     setExpandedBranch(null);
@@ -311,7 +317,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
       const branch = filteredBranches[selectedIndex];
       if (branch) {
         if (protectedBranches.has(branch.name)) {
-          showToast('error', `Cannot archive protected branch "${branch.name}"`);
+          showToast('error', `Cannot archive "${branch.name}" — ${getProtectedReason(branch.name)}`);
           return;
         }
         setConfirm({ type: 'archive', branch: branch.name });
@@ -332,7 +338,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
       const branch = filteredBranches[selectedIndex];
       if (branch) {
         if (protectedBranches.has(branch.name)) {
-          showToast('error', `Cannot delete protected branch "${branch.name}"`);
+          showToast('error', `Cannot delete "${branch.name}" — ${getProtectedReason(branch.name)}`);
           return;
         }
         setConfirm({ type: 'delete', branch: branch.name });

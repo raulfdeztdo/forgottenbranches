@@ -97,6 +97,8 @@ export default function BranchList({
           const isExpanded = expandedBranch === branch.name;
           const isChecked = selectedBranches.has(branch.name);
           const isProtected = branch.name === mainBranch || branch.name === currentBranch;
+          const protectedReason = branch.name === currentBranch
+            ? 'current' : branch.name === mainBranch ? 'main' : '';
 
           return (
             <Box key={branch.name} flexDirection="column">
@@ -107,6 +109,7 @@ export default function BranchList({
                 isExpanded={isExpanded}
                 isHighlighted={isHighlighted}
                 isProtected={isProtected}
+                protectedReason={protectedReason}
               />
               {isExpanded && (
                 <BranchDetailPanel

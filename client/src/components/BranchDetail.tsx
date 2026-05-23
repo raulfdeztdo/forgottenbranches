@@ -75,6 +75,11 @@ export default function BranchDetail({
 }: Props) {
   const { toast } = useToast();
   const isProtected = branch.name === mainBranch || branch.name === currentBranch;
+  const protectedReason = branch.name === currentBranch
+    ? 'current checked-out branch'
+    : branch.name === mainBranch
+      ? 'main branch'
+      : null;
   const [expanded, setExpanded] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
@@ -167,7 +172,7 @@ export default function BranchDetail({
               {branch.name}
             </span>
             {isProtected && (
-              <span className="protected-badge" title="Protected branch — cannot be archived or deleted">
+              <span className="protected-badge" title={`Protected — ${protectedReason}`}>
                 <Lock size={11} />
               </span>
             )}
@@ -367,7 +372,7 @@ export default function BranchDetail({
 
                   {!showArchive && !showDelete && isProtected && (
                     <p className="detail-protected-hint">
-                      <Lock size={12} /> This branch is protected and cannot be archived or deleted.
+                      <Lock size={12} /> Protected — {protectedReason}. Cannot be archived or deleted.
                     </p>
                   )}
 

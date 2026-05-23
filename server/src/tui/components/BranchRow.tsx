@@ -9,6 +9,7 @@ interface Props {
   isExpanded: boolean;
   isHighlighted: boolean;
   isProtected: boolean;
+  protectedReason: string;
 }
 
 function formatAge(days: number): string {
@@ -19,7 +20,7 @@ function formatAge(days: number): string {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-export default function BranchRow({ branch, isSelected, isChecked, isExpanded, isHighlighted, isProtected }: Props) {
+export default function BranchRow({ branch, isSelected, isChecked, isExpanded, isHighlighted, isProtected, protectedReason }: Props) {
   const statusColor = STATUS_COLORS[branch.status] || COLORS.text;
   const bg = isHighlighted ? COLORS.bgSecondary : undefined;
   const cursor = isHighlighted ? '>' : ' ';
@@ -36,7 +37,7 @@ export default function BranchRow({ branch, isSelected, isChecked, isExpanded, i
           {branch.name}
         </Text>
         {isProtected && (
-          <Text color={COLORS.accent}> 🔒</Text>
+          <Text color={COLORS.accent}> 🔒 {protectedReason}</Text>
         )}
         <Text color={COLORS.textSecondary}> {branch.upstreamGone ? 'gone' : branch.upstream || 'local'} </Text>
         <Text color={COLORS.textSecondary}>
