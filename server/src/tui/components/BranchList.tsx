@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { COLORS } from '../colors.js';
 import type { BranchInfo } from '@forgottenbranches/types';
 import BranchRow from './BranchRow.js';
+import type { BranchRowState } from './BranchRow.js';
 import BranchDetailPanel from './BranchDetail.js';
 
 interface Props {
@@ -93,25 +94,19 @@ export default function BranchList({
 
       <Box flexDirection="column">
         {sorted.map((branch, i) => {
-          const isHighlighted = i === selectedIndex;
-          const isExpanded = expandedBranch === branch.name;
-          const isChecked = selectedBranches.has(branch.name);
-          const isProtected = branch.name === mainBranch || branch.name === currentBranch;
-          const protectedReason = branch.name === currentBranch
-            ? 'current' : branch.name === mainBranch ? 'main' : '';
+          const row: BranchRowState = {
+            isHighlighted: i === selectedIndex,
+            isChecked: selectedBranches.has(branch.name),
+            isExpanded: expandedBranch === branch.name,
+            isProtected: branch.name === mainBranch || branch.name === currentBranch,
+            protectedReason:
+              branch.name === currentBranch ? 'current' : branch.name === mainBranch ? 'main' : '',
+          };
 
           return (
             <Box key={branch.name} flexDirection="column">
-              <BranchRow
-                branch={branch}
-                isSelected={false}
-                isChecked={isChecked}
-                isExpanded={isExpanded}
-                isHighlighted={isHighlighted}
-                isProtected={isProtected}
-                protectedReason={protectedReason}
-              />
-              {isExpanded && (
+              <BranchRow branch={branch} row={row} />
+              {row.isExpanded && (
                 <BranchDetailPanel
                   branch={branch}
                   onArchive={() => onArchive(branch.name)}

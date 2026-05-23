@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { getBranches, getArchivedBranches, detectCurrentBranch } from '../../git.js';
 import type { BranchesResult, ArchivedBranch } from '@forgottenbranches/types';
 
@@ -37,16 +37,6 @@ export function useGitData(repoPath: string) {
       if (mountedRef.current) setLoading(false);
     }
   }, [repoPath]);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    if (repoPath) {
-      scan();
-    }
-    return () => {
-      mountedRef.current = false;
-    };
-  }, [repoPath, scan]);
 
   return { data, archived, currentBranch, loading, error, scan, setData };
 }

@@ -1,14 +1,14 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useMemo, useReducer, useEffect } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { COLORS } from './colors.js';
 import { useGitData } from './hooks/useGitData.js';
-import { useKeyboard } from './hooks/useKeyboard.js';
+import { useTuiKeyboard, tuiReducer, type TuiState } from './hooks/useTuiKeyboard.js';
 import Header from './components/Header.js';
 import StatsBar from './components/StatsBar.js';
 import FilterBar from './components/FilterBar.js';
 import BranchList from './components/BranchList.js';
-import ConfirmDialog from './components/ConfirmDialog.js';
 import ArchivedList from './components/ArchivedList.js';
+import ConfirmDialog from './components/ConfirmDialog.js';
 import Toast, { showToast } from './components/Toast.js';
 import HelpBar from './components/HelpBar.js';
 import {
@@ -20,33 +20,160 @@ import {
   deleteArchivedBranch,
 } from '../git.js';
 
-const STATUS_FILTERS = ['all', 'active', 'forgotten', 'merged', 'orphan', 'abandoned'] as const;
-const SORT_FIELDS = ['status', 'name', 'date', 'age'] as const;
-
 interface Props {
   initialPath?: string;
 }
 
+const initialTuiState: TuiState = {
+  focusedSection: 'list',
+  selectedIndex: 0,
+  selectedBranches: new Set(),
+  expandedBranch: null,
+  searchQuery: '',
+  statusFilter: 'all',
+  sortField: 'status',
+  showArchived: false,
+};
+
 export default function TuiApp({ initialPath = '' }: Props) {
   const { exit } = useApp();
   const [repoPath, setRepoPath] = useState(initialPath);
-  const [focusedSection, setFocusedSection] = useState<'input' | 'filters' | 'list'>(
-    initialPath ? 'list' : 'input'
-  );
-  const [selectedIndex, setSelectedIndex] = useState(0);
-  const [selectedBranches, setSelectedBranches] = useState<Set<string>>(new Set());
-  const [expandedBranch, setExpandedBranch] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [sortField, setSortField] = useState('status');
+  const [state, dispatch] = useReducer(tuiReducer, {
+    ...initialTuiState,
+    focusedSection: initialPath ? 'list' : 'input',
+  });
   const [confirm, setConfirm] = useState<{ type: 'archive' | 'delete'; branch: string } | null>(null);
-  const [showArchived, setShowArchived] = useState(false);
-
   const { data, archived, currentBranch, loading, error, scan } = useGitData(repoPath);
+
+  useEffect(() => {
+    if (repoPath) scan();
+  }, [repoPath, scan]);
 
   const branches = data?.branches ?? [];
   const mainBranch = data?.mainBranch;
-  const protectedBranches = new Set([mainBranch, currentBranch].filter(Boolean));
+  const protectedSet = useMemo(() => new Set([mainBranch, currentBranch].filter(Boolean)), [mainBranch, currentBranch]);
+
+  const filteredBranches = useMemo(
+    () =>
+      branches.filter((b) => {
+        if (state.statusFilter !== 'all' && b.status !== state.statusFilter) return false;
+        if (state.searchQuery) {
+          const q = state.searchQuery.toLowerCase();
+          if (!b.name.toLowerCase().includes(q) && !b.lastCommitMessage.toLowerCase().includes(q)) return false;
+        }
+        return true;
+      }),
+    [branches, state.statusFilter, state.searchQuery]
+  );
+
+  const handleScan = useCallback(async () => {
+    dispatch({ type: 'SET_SELECTED_INDEX', index: 0 });
+    dispatch({ type: 'CLEAR_SELECTION' });
+    dispatch({ type: 'SET_FOCUS', section: 'list' });
+    if (state.expandedBranch) dispatch({ type: 'TOGGLE_EXPAND', name: state.expandedBranch });
+    const ok = await scan();
+    if (!ok) dispatch({ type: 'SET_FOCUS', section: 'input' });
+  }, [scan, state.expandedBranch]);
+
+  const refreshAfterAction = useCallback(() => {
+    dispatch({ type: 'CLEAR_SELECTION' });
+    dispatch({ type: 'SET_FOCUS', section: 'list' });
+    scan();
+  }, [scan]);
+
+  const handleArchive = useCallback(
+    async (name: string) => {
+      try {
+        const r = await archiveBranch(repoPath, name, mainBranch);
+        showToast(r.success ? 'success' : 'error', r.message);
+        if (r.success) refreshAfterAction();
+      } catch {
+        showToast('error', `Failed to archive ${name}`);
+      }
+    },
+    [repoPath, mainBranch, refreshAfterAction]
+  );
+
+  const handleDelete = useCallback(
+    async (name: string) => {
+      try {
+        const r = await deleteBranch(repoPath, name, false, mainBranch);
+        showToast(r.success ? 'success' : 'error', r.message);
+        if (r.success) refreshAfterAction();
+      } catch {
+        showToast('error', `Failed to delete ${name}`);
+      }
+    },
+    [repoPath, mainBranch, refreshAfterAction]
+  );
+
+  const handleBulkArchive = useCallback(async () => {
+    const names = [...state.selectedBranches];
+    try {
+      const r = await archiveBranches(repoPath, names, mainBranch);
+      showToast(r.success ? 'success' : 'error', r.success ? `Archived ${names.length} branch(es)` : `${r.results.filter((x) => !x.success).length} failed`);
+      refreshAfterAction();
+    } catch {
+      showToast('error', 'Bulk archive failed');
+    }
+  }, [repoPath, mainBranch, state.selectedBranches, refreshAfterAction]);
+
+  const handleBulkDelete = useCallback(async () => {
+    const names = [...state.selectedBranches];
+    try {
+      const r = await deleteBranches(repoPath, names, false, mainBranch);
+      showToast(r.success ? 'success' : 'error', r.success ? `Deleted ${names.length} branch(es)` : `${r.results.filter((x) => !x.success).length} failed`);
+      refreshAfterAction();
+    } catch {
+      showToast('error', 'Bulk delete failed');
+    }
+  }, [repoPath, mainBranch, state.selectedBranches, refreshAfterAction]);
+
+  const handleRestore = useCallback(
+    async (name: string) => {
+      try {
+        const r = await restoreArchivedBranch(repoPath, name);
+        showToast(r.success ? 'success' : 'error', r.message);
+        if (r.success) refreshAfterAction();
+      } catch {
+        showToast('error', `Failed to restore ${name}`);
+      }
+    },
+    [repoPath, refreshAfterAction]
+  );
+
+  const handlePermanentDelete = useCallback(
+    async (name: string) => {
+      try {
+        const r = await deleteArchivedBranch(repoPath, name);
+        showToast(r.success ? 'success' : 'error', r.message);
+        if (r.success) refreshAfterAction();
+      } catch {
+        showToast('error', `Failed to delete ${name}`);
+      }
+    },
+    [repoPath, refreshAfterAction]
+  );
+
+  const handleBulkRestore = useCallback(async () => {
+    const names = [...state.selectedBranches];
+    const results = await Promise.all(
+      names.map((n) => restoreArchivedBranch(repoPath, n).catch(() => ({ success: false, message: '' })))
+    );
+    const ok = results.filter((r) => r.success).length;
+    showToast(ok === names.length ? 'success' : 'error', ok === names.length ? `Restored ${ok} branch(es)` : `${names.length - ok}/${names.length} failed`);
+    refreshAfterAction();
+  }, [repoPath, state.selectedBranches, refreshAfterAction]);
+
+  const handleBulkPermanentDelete = useCallback(async () => {
+    const names = [...state.selectedBranches];
+    const results = await Promise.all(
+      names.map((n) => deleteArchivedBranch(repoPath, n).catch(() => ({ success: false, message: '' })))
+    );
+    const ok = results.filter((r) => r.success).length;
+    showToast(ok === names.length ? 'success' : 'error', ok === names.length ? `Deleted ${ok} archive(s)` : `${names.length - ok}/${names.length} failed`);
+    refreshAfterAction();
+  }, [repoPath, state.selectedBranches, refreshAfterAction]);
 
   function getProtectedReason(name: string): string {
     if (name === currentBranch) return 'current checked-out branch';
@@ -54,361 +181,34 @@ export default function TuiApp({ initialPath = '' }: Props) {
     return '';
   }
 
-  const handleScan = useCallback(async () => {
-    setSelectedIndex(0);
-    setExpandedBranch(null);
-    setSelectedBranches(new Set());
-    setFocusedSection('list');
-    const ok = await scan();
-    if (!ok) setFocusedSection('input');
-  }, [scan]);
-
-  const handleArchive = useCallback(async (name: string) => {
-    try {
-      const result = await archiveBranch(repoPath, name, mainBranch);
-      if (result.success) {
-        showToast('success', result.message);
-        scan();
-      } else {
-        showToast('error', result.message);
-      }
-    } catch {
-      showToast('error', `Failed to archive ${name}`);
-    }
-    setExpandedBranch(null);
-  }, [repoPath, mainBranch, scan]);
-
-  const handleDelete = useCallback(async (name: string) => {
-    try {
-      const result = await deleteBranch(repoPath, name, false, mainBranch);
-      if (result.success) {
-        showToast('success', result.message);
-        scan();
-      } else {
-        showToast('error', result.message);
-      }
-    } catch {
-      showToast('error', `Failed to delete ${name}`);
-    }
-    setExpandedBranch(null);
-  }, [repoPath, mainBranch, scan]);
-
-  const handleRestore = useCallback(async (name: string) => {
-    try {
-      const result = await restoreArchivedBranch(repoPath, name);
-      if (result.success) {
-        showToast('success', result.message);
-        scan();
-      } else {
-        showToast('error', result.message);
-      }
-    } catch {
-      showToast('error', `Failed to restore ${name}`);
-    }
-  }, [repoPath, scan]);
-
-  const handlePermanentDelete = useCallback(async (name: string) => {
-    try {
-      const result = await deleteArchivedBranch(repoPath, name);
-      if (result.success) {
-        showToast('success', result.message);
-        scan();
-      } else {
-        showToast('error', result.message);
-      }
-    } catch {
-      showToast('error', `Failed to delete ${name}`);
-    }
-  }, [repoPath, scan]);
-
-  const handleBulkArchive = useCallback(async () => {
-    if (selectedBranches.size === 0) return;
-    try {
-      const names = [...selectedBranches];
-      const result = await archiveBranches(repoPath, names, mainBranch);
-      if (result.success) {
-        showToast('success', `Archived ${names.length} branch(es)`);
-      } else {
-        const failed = result.results.filter((r) => !r.success);
-        showToast('error', `${failed.length} branch(es) failed to archive`);
-      }
-      setSelectedBranches(new Set());
-      scan();
-    } catch {
-      showToast('error', 'Bulk archive failed');
-    }
-  }, [repoPath, mainBranch, selectedBranches, scan]);
-
-  const handleBulkDelete = useCallback(async () => {
-    if (selectedBranches.size === 0) return;
-    try {
-      const names = [...selectedBranches];
-      const result = await deleteBranches(repoPath, names, false, mainBranch);
-      if (result.success) {
-        showToast('success', `Deleted ${names.length} branch(es)`);
-      } else {
-        const failed = result.results.filter((r) => !r.success);
-        showToast('error', `${failed.length} branch(es) failed to delete`);
-      }
-      setSelectedBranches(new Set());
-      scan();
-    } catch {
-      showToast('error', 'Bulk delete failed');
-    }
-  }, [repoPath, mainBranch, selectedBranches, scan]);
-
-  const handleBulkRestore = useCallback(async () => {
-    if (selectedBranches.size === 0) return;
-    const names = [...selectedBranches];
-    const results = await Promise.all(
-      names.map((name) =>
-        restoreArchivedBranch(repoPath, name).catch(() => ({
-          success: false,
-          message: 'Failed',
-        }))
-      )
-    );
-    const ok = results.filter((r) => r.success).length;
-    const fail = results.length - ok;
-    if (fail === 0) showToast('success', `Restored ${ok} branch(es)`);
-    else showToast('error', `${fail}/${names.length} failed to restore`);
-    setSelectedBranches(new Set());
-    scan();
-  }, [repoPath, selectedBranches, scan]);
-
-  const handleBulkPermanentDelete = useCallback(async () => {
-    if (selectedBranches.size === 0) return;
-    const names = [...selectedBranches];
-    const results = await Promise.all(
-      names.map((name) =>
-        deleteArchivedBranch(repoPath, name).catch(() => ({
-          success: false,
-          message: 'Failed',
-        }))
-      )
-    );
-    const ok = results.filter((r) => r.success).length;
-    const fail = results.length - ok;
-    if (fail === 0) showToast('success', `Deleted ${ok} archive(s)`);
-    else showToast('error', `${fail}/${names.length} failed`);
-    setSelectedBranches(new Set());
-    scan();
-  }, [repoPath, selectedBranches, scan]);
-
-  const filteredBranches = branches.filter((b) => {
-    if (statusFilter !== 'all' && b.status !== statusFilter) return false;
-    if (searchQuery) {
-      const q = searchQuery.toLowerCase();
-      if (!b.name.toLowerCase().includes(q) && !b.lastCommitMessage.toLowerCase().includes(q))
-        return false;
-    }
-    return true;
-  });
-
-  useKeyboard((input, key) => {
-    // Global keys (work from any section)
-    if (key.escape || input === 'q') {
-      exit();
-      return;
-    }
-
-    if (input === 's') {
-      handleScan();
-      return;
-    }
-
-    if (key.tab) {
-      setShowArchived((prev) => !prev);
-      setSelectedIndex(0);
-      setExpandedBranch(null);
-      setSelectedBranches(new Set());
-      return;
-    }
-
-    if (confirm) {
-      if (key.escape || input === 'n') {
-        setConfirm(null);
-      }
-      if (input === 'y' || key.return) {
-        const { type, branch } = confirm;
-        setConfirm(null);
-        if (type === 'archive') handleArchive(branch);
-        else handleDelete(branch);
-      }
-      return;
-    }
-
-    // Section-specific keys
-    if (focusedSection === 'input') {
-      // Only Escape and global 'q' are handled (above). Enter triggers onSubmit in TextInput.
-      // Space, '/', and 'f' are captured by TextInput.
-      return;
-    }
-
-    if (input === '/' || input === 'i') {
-      setFocusedSection('input');
-      return;
-    }
-
-    if (focusedSection === 'filters') {
-      if (key.return) {
-        setFocusedSection('list');
-        return;
-      }
-      if (key.upArrow) {
-        const idx = STATUS_FILTERS.indexOf(statusFilter as typeof STATUS_FILTERS[number]);
-        setStatusFilter(
-          idx <= 0 ? STATUS_FILTERS[STATUS_FILTERS.length - 1] : STATUS_FILTERS[idx - 1]
-        );
-        return;
-      }
-      if (key.downArrow) {
-        const idx = STATUS_FILTERS.indexOf(statusFilter as typeof STATUS_FILTERS[number]);
-        setStatusFilter(
-          idx >= STATUS_FILTERS.length - 1 ? STATUS_FILTERS[0] : STATUS_FILTERS[idx + 1]
-        );
-        return;
-      }
-      if (key.leftArrow) {
-        const idx = SORT_FIELDS.indexOf(sortField as typeof SORT_FIELDS[number]);
-        setSortField(
-          idx <= 0 ? SORT_FIELDS[SORT_FIELDS.length - 1] : SORT_FIELDS[idx - 1]
-        );
-        return;
-      }
-      if (key.rightArrow) {
-        const idx = SORT_FIELDS.indexOf(sortField as typeof SORT_FIELDS[number]);
-        setSortField(
-          idx >= SORT_FIELDS.length - 1 ? SORT_FIELDS[0] : SORT_FIELDS[idx + 1]
-        );
-        return;
-      }
-      if (input === 'f') {
-        setFocusedSection('list');
-        return;
-      }
-      return;
-    }
-
-    // Section: list
-    if (input === 'f' && !showArchived) {
-      setFocusedSection('filters');
-      return;
-    }
-
-    if (input === 'a' && !showArchived) {
-      if (selectedBranches.size > 0) {
-        const safe = [...selectedBranches].filter((n) => !protectedBranches.has(n));
-        if (safe.length === 0) {
-          showToast('error', 'Cannot archive protected branches');
-          return;
-        }
-        handleBulkArchive();
-        return;
-      }
-      const branch = filteredBranches[selectedIndex];
-      if (branch) {
-        if (protectedBranches.has(branch.name)) {
-          showToast('error', `Cannot archive "${branch.name}" — ${getProtectedReason(branch.name)}`);
-          return;
-        }
-        setConfirm({ type: 'archive', branch: branch.name });
-      }
-      return;
-    }
-
-    if (input === 'd' && !showArchived) {
-      if (selectedBranches.size > 0) {
-        const safe = [...selectedBranches].filter((n) => !protectedBranches.has(n));
-        if (safe.length === 0) {
-          showToast('error', 'Cannot delete protected branches');
-          return;
-        }
-        handleBulkDelete();
-        return;
-      }
-      const branch = filteredBranches[selectedIndex];
-      if (branch) {
-        if (protectedBranches.has(branch.name)) {
-          showToast('error', `Cannot delete "${branch.name}" — ${getProtectedReason(branch.name)}`);
-          return;
-        }
-        setConfirm({ type: 'delete', branch: branch.name });
-      }
-      return;
-    }
-
-    // Archived-specific actions
-    if (input === 'r' && showArchived) {
-      if (selectedBranches.size > 0) {
-        handleBulkRestore();
-        return;
-      }
-      const branch = archived[selectedIndex];
-      if (branch) handleRestore(branch.name);
-      return;
-    }
-
-    if (input === 'D' && showArchived) {
-      if (selectedBranches.size > 0) {
-        handleBulkPermanentDelete();
-        return;
-      }
-      const branch = archived[selectedIndex];
-      if (branch) handlePermanentDelete(branch.name);
-      return;
-    }
-
-    if (key.return) {
-      if (showArchived) {
-        const branch = archived[selectedIndex];
-        if (branch) {
-          setExpandedBranch((prev) =>
-            prev === branch.name ? null : branch.name
-          );
-        }
-      } else {
-        const branch = filteredBranches[selectedIndex];
-        if (branch) {
-          setExpandedBranch((prev) =>
-            prev === branch.name ? null : branch.name
-          );
-        }
-      }
-      return;
-    }
-
-    const listLength = showArchived ? archived.length : filteredBranches.length;
-
-    if (key.upArrow && listLength > 0) {
-      setSelectedIndex((prev) => (prev <= 0 ? listLength - 1 : prev - 1));
-      return;
-    }
-
-    if (key.downArrow && listLength > 0) {
-      setSelectedIndex((prev) => (prev >= listLength - 1 ? 0 : prev + 1));
-      return;
-    }
-
-    if (input === ' ') {
-      const item = showArchived ? archived[selectedIndex] : filteredBranches[selectedIndex];
-      if (item) {
-        setSelectedBranches((prev) => {
-          const next = new Set(prev);
-          if (next.has(item.name)) next.delete(item.name);
-          else next.add(item.name);
-          return next;
-        });
-      }
-      return;
-    }
+  useTuiKeyboard({
+    state,
+    dispatch,
+    repoPath,
+    setRepoPath,
+    filteredBranches,
+    archived,
+    mainBranch,
+    currentBranch,
+    confirm,
+    setConfirm,
+    onScan: handleScan,
+    onExit: exit,
+    onSingleArchive: (name) => handleArchive(name),
+    onSingleDelete: (name) => handleDelete(name),
+    onBulkArchive: handleBulkArchive,
+    onBulkDelete: handleBulkDelete,
+    onRestore: (name) => handleRestore(name),
+    onBulkRestore: handleBulkRestore,
+    onPermanentDelete: (name) => handlePermanentDelete(name),
+    onBulkPermanentDelete: handleBulkPermanentDelete,
   });
 
   return (
     <Box flexDirection="column" paddingX={1} paddingY={1}>
       <Header
         repoPath={repoPath}
-        focused={focusedSection === 'input'}
+        focused={state.focusedSection === 'input'}
         loading={loading}
         onPathChange={setRepoPath}
         onScan={handleScan}
@@ -425,51 +225,42 @@ export default function TuiApp({ initialPath = '' }: Props) {
       <StatsBar data={data} archivedCount={archived.length} currentBranch={currentBranch} loading={loading} />
 
       <Box marginBottom={1} gap={2}>
-        <Text color={!showArchived ? COLORS.accent : COLORS.textSecondary} bold={!showArchived}>
+        <Text color={!state.showArchived ? COLORS.accent : COLORS.textSecondary} bold={!state.showArchived}>
           Branches{data ? ` (${data.totalLocal})` : ''}
         </Text>
-        <Text color={showArchived ? COLORS.accent : COLORS.textSecondary} bold={showArchived}>
+        <Text color={state.showArchived ? COLORS.accent : COLORS.textSecondary} bold={state.showArchived}>
           Archived ({archived.length})
         </Text>
         <Text dimColor>Tab to switch</Text>
-        {selectedBranches.size > 0 && (
+        {state.selectedBranches.size > 0 && (
           <Text color={COLORS.warning}>
-            {selectedBranches.size} selected{' '}
-            {showArchived ? '— r/D to bulk restore/delete' : '— a/d to bulk archive/delete'}
+            {state.selectedBranches.size} selected{' '}
+            {state.showArchived ? '— r/D to bulk restore/delete' : '— a/d to bulk archive/delete'}
           </Text>
         )}
       </Box>
 
-      {showArchived ? (
+      {state.showArchived ? (
         <ArchivedList
           archived={archived}
-          selectedIndex={selectedIndex}
-          selectedBranches={selectedBranches}
-          expandedBranch={expandedBranch}
-          onToggleSelect={(name) => {
-            setSelectedBranches((prev) => {
-              const next = new Set(prev);
-              if (next.has(name)) next.delete(name);
-              else next.add(name);
-              return next;
-            });
-          }}
-          onToggleExpand={(name) => {
-            setExpandedBranch((prev) => (prev === name ? null : name));
-          }}
+          selectedIndex={state.selectedIndex}
+          selectedBranches={state.selectedBranches}
+          expandedBranch={state.expandedBranch}
+          onToggleSelect={(name) => dispatch({ type: 'TOGGLE_SELECT', name })}
+          onToggleExpand={(name) => dispatch({ type: 'TOGGLE_EXPAND', name })}
           onRestore={(name) => handleRestore(name)}
           onDelete={(name) => handlePermanentDelete(name)}
         />
       ) : (
         <>
           <FilterBar
-            searchQuery={searchQuery}
-            statusFilter={statusFilter}
-            sortField={sortField}
-            focused={focusedSection === 'filters'}
-            onSearchChange={setSearchQuery}
-            onStatusFilterChange={setStatusFilter}
-            onSortFieldChange={setSortField}
+            searchQuery={state.searchQuery}
+            statusFilter={state.statusFilter}
+            sortField={state.sortField}
+            focused={state.focusedSection === 'filters'}
+            onSearchChange={(v) => dispatch({ type: 'SET_SEARCH', query: v })}
+            onStatusFilterChange={(v) => dispatch({ type: 'SET_STATUS_FILTER', filter: v })}
+            onSortFieldChange={(v) => dispatch({ type: 'SET_SORT', field: v })}
           />
 
           {loading ? (
@@ -481,25 +272,28 @@ export default function TuiApp({ initialPath = '' }: Props) {
               branches={branches}
               mainBranch={mainBranch || ''}
               currentBranch={currentBranch}
-              searchQuery={searchQuery}
-              statusFilter={statusFilter}
-              sortField={sortField}
-              selectedIndex={selectedIndex}
-              selectedBranches={selectedBranches}
-              expandedBranch={expandedBranch}
-              onToggleSelect={(name) => {
-                setSelectedBranches((prev) => {
-                  const next = new Set(prev);
-                  if (next.has(name)) next.delete(name);
-                  else next.add(name);
-                  return next;
-                });
+              searchQuery={state.searchQuery}
+              statusFilter={state.statusFilter}
+              sortField={state.sortField}
+              selectedIndex={state.selectedIndex}
+              selectedBranches={state.selectedBranches}
+              expandedBranch={state.expandedBranch}
+              onToggleSelect={(name) => dispatch({ type: 'TOGGLE_SELECT', name })}
+              onToggleExpand={(name) => dispatch({ type: 'TOGGLE_EXPAND', name })}
+              onArchive={(name) => {
+                if (protectedSet.has(name)) {
+                  showToast('error', `Cannot archive "${name}" — ${getProtectedReason(name)}`);
+                  return;
+                }
+                setConfirm({ type: 'archive', branch: name });
               }}
-              onToggleExpand={(name) => {
-                setExpandedBranch((prev) => (prev === name ? null : name));
+              onDelete={(name) => {
+                if (protectedSet.has(name)) {
+                  showToast('error', `Cannot delete "${name}" — ${getProtectedReason(name)}`);
+                  return;
+                }
+                setConfirm({ type: 'delete', branch: name });
               }}
-              onArchive={(name) => setConfirm({ type: 'archive', branch: name })}
-              onDelete={(name) => setConfirm({ type: 'delete', branch: name })}
             />
           )}
         </>
