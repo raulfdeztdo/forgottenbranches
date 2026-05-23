@@ -1,5 +1,5 @@
 import { Box, Text } from 'ink';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { COLORS } from '../colors.js';
 
 export type ToastType = 'success' | 'error' | 'info';
@@ -9,23 +9,25 @@ interface ToastData {
   message: string;
 }
 
-let addToast: (toast: ToastData) => void;
+let addToast: ((toast: ToastData) => void) | null = null;
 
 export function showToast(type: ToastType, message: string) {
-  if (addToast) addToast({ type, message });
+  addToast?.({ type, message });
 }
 
 export default function Toast() {
   const [toast, setToast] = useState<ToastData | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     addToast = (t: ToastData) => {
+      if (timerRef.current) clearTimeout(timerRef.current);
       setToast(t);
-      const timer = setTimeout(() => setToast(null), 3000);
-      return () => clearTimeout(timer);
+      timerRef.current = setTimeout(() => setToast(null), 3000);
     };
     return () => {
-      addToast = () => {};
+      addToast = null;
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
 

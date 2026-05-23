@@ -420,7 +420,7 @@ export default function BranchDetail({
                       </p>
                       {branch.isMergedIntoMain && (
                         <p className="confirm-hint">
-                          This branch is merged — safe to delete.
+                          This branch is merged, safe to delete.
                         </p>
                       )}
                       {!branch.isMergedIntoMain && (

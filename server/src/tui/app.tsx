@@ -54,20 +54,14 @@ export default function TuiApp({ initialPath = '' }: Props) {
     return '';
   }
 
-  const handleScan = useCallback(() => {
+  const handleScan = useCallback(async () => {
     setSelectedIndex(0);
     setExpandedBranch(null);
     setSelectedBranches(new Set());
     setFocusedSection('list');
-    scan();
+    const ok = await scan();
+    if (!ok) setFocusedSection('input');
   }, [scan]);
-
-  // When scan fails, focus back to input so user can fix path
-  useEffect(() => {
-    if (error) {
-      setFocusedSection('input');
-    }
-  }, [error]);
 
   const handleArchive = useCallback(async (name: string) => {
     try {
@@ -166,17 +160,16 @@ export default function TuiApp({ initialPath = '' }: Props) {
   const handleBulkRestore = useCallback(async () => {
     if (selectedBranches.size === 0) return;
     const names = [...selectedBranches];
-    let ok = 0;
-    let fail = 0;
-    for (const name of names) {
-      try {
-        const result = await restoreArchivedBranch(repoPath, name);
-        if (result.success) ok++;
-        else fail++;
-      } catch {
-        fail++;
-      }
-    }
+    const results = await Promise.all(
+      names.map((name) =>
+        restoreArchivedBranch(repoPath, name).catch(() => ({
+          success: false,
+          message: 'Failed',
+        }))
+      )
+    );
+    const ok = results.filter((r) => r.success).length;
+    const fail = results.length - ok;
     if (fail === 0) showToast('success', `Restored ${ok} branch(es)`);
     else showToast('error', `${fail}/${names.length} failed to restore`);
     setSelectedBranches(new Set());
@@ -186,17 +179,16 @@ export default function TuiApp({ initialPath = '' }: Props) {
   const handleBulkPermanentDelete = useCallback(async () => {
     if (selectedBranches.size === 0) return;
     const names = [...selectedBranches];
-    let ok = 0;
-    let fail = 0;
-    for (const name of names) {
-      try {
-        const result = await deleteArchivedBranch(repoPath, name);
-        if (result.success) ok++;
-        else fail++;
-      } catch {
-        fail++;
-      }
-    }
+    const results = await Promise.all(
+      names.map((name) =>
+        deleteArchivedBranch(repoPath, name).catch(() => ({
+          success: false,
+          message: 'Failed',
+        }))
+      )
+    );
+    const ok = results.filter((r) => r.success).length;
+    const fail = results.length - ok;
     if (fail === 0) showToast('success', `Deleted ${ok} archive(s)`);
     else showToast('error', `${fail}/${names.length} failed`);
     setSelectedBranches(new Set());
@@ -482,7 +474,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
 
           {loading ? (
             <Box marginY={2}>
-              <Text color={COLORS.textSecondary}>Scanning repository...</Text>
+              <Text color={COLORS.textSecondary}>Scanning repository…</Text>
             </Box>
           ) : (
             <BranchList
