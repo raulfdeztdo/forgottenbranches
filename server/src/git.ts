@@ -35,6 +35,20 @@ export async function detectMainBranch(repoPath: string): Promise<string> {
   return names[0] || 'main';
 }
 
+export async function detectCurrentBranch(repoPath: string): Promise<string | null> {
+  try {
+    const output = await git(repoPath, ['branch']);
+    for (const line of output.split('\n')) {
+      if (line.startsWith('* ')) {
+        return line.substring(2).trim();
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 async function getMergedBranches(
   repoPath: string,
   mainBranch: string

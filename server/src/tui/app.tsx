@@ -42,10 +42,11 @@ export default function TuiApp({ initialPath = '' }: Props) {
   const [confirm, setConfirm] = useState<{ type: 'archive' | 'delete'; branch: string } | null>(null);
   const [showArchived, setShowArchived] = useState(false);
 
-  const { data, archived, loading, error, scan } = useGitData(repoPath);
+  const { data, archived, currentBranch, loading, error, scan } = useGitData(repoPath);
 
   const branches = data?.branches ?? [];
   const mainBranch = data?.mainBranch;
+  const protectedBranches = new Set([mainBranch, currentBranch].filter(Boolean));
 
   const handleScan = useCallback(() => {
     setSelectedIndex(0);
@@ -292,11 +293,20 @@ export default function TuiApp({ initialPath = '' }: Props) {
 
     if (input === 'a' && !showArchived) {
       if (selectedBranches.size > 0) {
+        const safe = [...selectedBranches].filter((n) => !protectedBranches.has(n));
+        if (safe.length === 0) {
+          showToast('error', 'Cannot archive protected branches');
+          return;
+        }
         handleBulkArchive();
         return;
       }
       const branch = filteredBranches[selectedIndex];
       if (branch) {
+        if (protectedBranches.has(branch.name)) {
+          showToast('error', `Cannot archive protected branch "${branch.name}"`);
+          return;
+        }
         setConfirm({ type: 'archive', branch: branch.name });
       }
       return;
@@ -304,11 +314,20 @@ export default function TuiApp({ initialPath = '' }: Props) {
 
     if (input === 'd' && !showArchived) {
       if (selectedBranches.size > 0) {
+        const safe = [...selectedBranches].filter((n) => !protectedBranches.has(n));
+        if (safe.length === 0) {
+          showToast('error', 'Cannot delete protected branches');
+          return;
+        }
         handleBulkDelete();
         return;
       }
       const branch = filteredBranches[selectedIndex];
       if (branch) {
+        if (protectedBranches.has(branch.name)) {
+          showToast('error', `Cannot delete protected branch "${branch.name}"`);
+          return;
+        }
         setConfirm({ type: 'delete', branch: branch.name });
       }
       return;
@@ -397,7 +416,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
         </Box>
       )}
 
-      <StatsBar data={data} archivedCount={archived.length} loading={loading} />
+      <StatsBar data={data} archivedCount={archived.length} currentBranch={currentBranch} loading={loading} />
 
       <Box marginBottom={1} gap={2}>
         <Text color={!showArchived ? COLORS.accent : COLORS.textSecondary} bold={!showArchived}>
@@ -454,6 +473,8 @@ export default function TuiApp({ initialPath = '' }: Props) {
           ) : (
             <BranchList
               branches={branches}
+              mainBranch={mainBranch || ''}
+              currentBranch={currentBranch}
               searchQuery={searchQuery}
               statusFilter={statusFilter}
               sortField={sortField}

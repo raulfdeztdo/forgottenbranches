@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import type { BranchInfo } from '@forgottenbranches/types';
 
+// Also test protected branch detection logic
+function isProtected(branchName: string, mainBranch?: string, currentBranch?: string | null): boolean {
+  return branchName === mainBranch || branchName === currentBranch;
+}
+
 function makeBranch(overrides: Partial<BranchInfo> = {}): BranchInfo {
   return {
     name: 'feature/test',
@@ -100,5 +105,24 @@ describe('BranchList sorting', () => {
       (a, b) => order.indexOf(a.status) - order.indexOf(b.status)
     );
     expect(sorted.map((b) => b.status)).toEqual(['active', 'merged', 'forgotten']);
+  });
+});
+
+describe('protected branch detection', () => {
+  it('detects main branch as protected', () => {
+    expect(isProtected('main', 'main', 'feature/test')).toBe(true);
+  });
+
+  it('detects current branch as protected', () => {
+    expect(isProtected('feature/test', 'main', 'feature/test')).toBe(true);
+  });
+
+  it('does not flag regular branches as protected', () => {
+    expect(isProtected('feature/other', 'main', 'feature/test')).toBe(false);
+  });
+
+  it('handles null current branch', () => {
+    expect(isProtected('main', 'main', null)).toBe(true);
+    expect(isProtected('feature/test', 'main', null)).toBe(false);
   });
 });

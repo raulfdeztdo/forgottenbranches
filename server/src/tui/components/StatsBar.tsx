@@ -5,10 +5,11 @@ import type { BranchesResult } from '@forgottenbranches/types';
 interface Props {
   data: BranchesResult | null;
   archivedCount: number;
+  currentBranch: string | null;
   loading: boolean;
 }
 
-export default function StatsBar({ data, archivedCount, loading }: Props) {
+export default function StatsBar({ data, archivedCount, currentBranch, loading }: Props) {
   if (!data && !loading) {
     return (
       <Box marginY={1}>
@@ -39,6 +40,14 @@ export default function StatsBar({ data, archivedCount, loading }: Props) {
           {loading ? '...' : data?.mainBranch ?? '-'}
         </Text>
       </Text>
+      {currentBranch && (
+        <Text color={COLORS.text}>
+          Current:{' '}
+          <Text bold color={COLORS.purple}>
+            {currentBranch}
+          </Text>
+        </Text>
+      )}
       <Text color={COLORS.text}>
         Archived:{' '}
         <Text bold color={COLORS.purple}>

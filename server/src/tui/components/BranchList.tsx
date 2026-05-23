@@ -7,6 +7,8 @@ import BranchDetailPanel from './BranchDetail.js';
 
 interface Props {
   branches: BranchInfo[];
+  mainBranch: string;
+  currentBranch: string | null;
   searchQuery: string;
   statusFilter: string;
   sortField: string;
@@ -21,6 +23,8 @@ interface Props {
 
 export default function BranchList({
   branches,
+  mainBranch,
+  currentBranch,
   searchQuery,
   statusFilter,
   sortField,
@@ -92,6 +96,7 @@ export default function BranchList({
           const isHighlighted = i === selectedIndex;
           const isExpanded = expandedBranch === branch.name;
           const isChecked = selectedBranches.has(branch.name);
+          const isProtected = branch.name === mainBranch || branch.name === currentBranch;
 
           return (
             <Box key={branch.name} flexDirection="column">
@@ -101,6 +106,7 @@ export default function BranchList({
                 isChecked={isChecked}
                 isExpanded={isExpanded}
                 isHighlighted={isHighlighted}
+                isProtected={isProtected}
               />
               {isExpanded && (
                 <BranchDetailPanel

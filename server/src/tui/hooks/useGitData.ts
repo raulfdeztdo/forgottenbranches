@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
-import { getBranches, getArchivedBranches } from '../../git.js';
+import { getBranches, getArchivedBranches, detectCurrentBranch } from '../../git.js';
 import type { BranchesResult, ArchivedBranch } from '@forgottenbranches/types';
 
 export function useGitData(repoPath: string) {
   const [data, setData] = useState<BranchesResult | null>(null);
   const [archived, setArchived] = useState<ArchivedBranch[]>([]);
+  const [currentBranch, setCurrentBranch] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -13,17 +14,20 @@ export function useGitData(repoPath: string) {
     setLoading(true);
     setError(null);
     try {
-      const [branches, archivedBranches] = await Promise.all([
+      const [branches, archivedBranches, current] = await Promise.all([
         getBranches(repoPath),
         getArchivedBranches(repoPath).catch(() => [] as ArchivedBranch[]),
+        detectCurrentBranch(repoPath).catch(() => null),
       ]);
       setData(branches);
       setArchived(archivedBranches);
+      setCurrentBranch(current);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Unknown error';
       setError(msg);
       setData(null);
       setArchived([]);
+      setCurrentBranch(null);
     } finally {
       setLoading(false);
     }
@@ -35,5 +39,5 @@ export function useGitData(repoPath: string) {
     }
   }, []);
 
-  return { data, archived, loading, error, scan, setData };
+  return { data, archived, currentBranch, loading, error, scan, setData };
 }

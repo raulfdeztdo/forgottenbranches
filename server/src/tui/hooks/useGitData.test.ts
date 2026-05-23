@@ -6,6 +6,7 @@ const mockGetArchivedBranches = vi.fn();
 vi.mock('../../git.js', () => ({
   getBranches: (...args: unknown[]) => mockGetBranches(...args),
   getArchivedBranches: (...args: unknown[]) => mockGetArchivedBranches(...args),
+  detectCurrentBranch: vi.fn().mockResolvedValue('main'),
 }));
 
 beforeEach(() => {
