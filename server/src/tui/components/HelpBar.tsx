@@ -10,7 +10,7 @@ export default function HelpBar() {
       borderColor={COLORS.bgSecondary}
     >
       <Text color={COLORS.textSecondary}>
-        ↑↓ Navigate  ↵ Expand  Space Toggle  / Path  f Filters  a Archive  d Delete  s Scan  q Quit
+        ↑↓ Navigate  ↵ Expand  Space Toggle  Tab Archived  / Path  f Filters  a/d Archive/Del  q Quit
       </Text>
     </Box>
   );

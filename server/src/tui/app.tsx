@@ -8,11 +8,14 @@ import StatsBar from './components/StatsBar.js';
 import FilterBar from './components/FilterBar.js';
 import BranchList from './components/BranchList.js';
 import ConfirmDialog from './components/ConfirmDialog.js';
+import ArchivedList from './components/ArchivedList.js';
 import Toast, { showToast } from './components/Toast.js';
 import HelpBar from './components/HelpBar.js';
 import {
   archiveBranch,
   deleteBranch,
+  restoreArchivedBranch,
+  deleteArchivedBranch,
 } from '../git.js';
 
 const STATUS_FILTERS = ['all', 'active', 'forgotten', 'merged', 'orphan', 'abandoned'] as const;
@@ -35,6 +38,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortField, setSortField] = useState('status');
   const [confirm, setConfirm] = useState<{ type: 'archive' | 'delete'; branch: string } | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
 
   const { data, archived, loading, error, scan } = useGitData(repoPath);
 
@@ -79,6 +83,34 @@ export default function TuiApp({ initialPath = '' }: Props) {
     setExpandedBranch(null);
   }, [repoPath, mainBranch, scan]);
 
+  const handleRestore = useCallback(async (name: string) => {
+    try {
+      const result = await restoreArchivedBranch(repoPath, name);
+      if (result.success) {
+        showToast('success', result.message);
+        scan();
+      } else {
+        showToast('error', result.message);
+      }
+    } catch {
+      showToast('error', `Failed to restore ${name}`);
+    }
+  }, [repoPath, scan]);
+
+  const handlePermanentDelete = useCallback(async (name: string) => {
+    try {
+      const result = await deleteArchivedBranch(repoPath, name);
+      if (result.success) {
+        showToast('success', result.message);
+        scan();
+      } else {
+        showToast('error', result.message);
+      }
+    } catch {
+      showToast('error', `Failed to delete ${name}`);
+    }
+  }, [repoPath, scan]);
+
   const filteredBranches = branches.filter((b) => {
     if (statusFilter !== 'all' && b.status !== statusFilter) return false;
     if (searchQuery) {
@@ -98,6 +130,13 @@ export default function TuiApp({ initialPath = '' }: Props) {
 
     if (input === 's') {
       handleScan();
+      return;
+    }
+
+    if (key.tab) {
+      setShowArchived((prev) => !prev);
+      setSelectedIndex(0);
+      setExpandedBranch(null);
       return;
     }
 
@@ -167,12 +206,12 @@ export default function TuiApp({ initialPath = '' }: Props) {
     }
 
     // Section: list
-    if (input === 'f') {
+    if (input === 'f' && !showArchived) {
       setFocusedSection('filters');
       return;
     }
 
-    if (input === 'a') {
+    if (input === 'a' && !showArchived) {
       const branch = filteredBranches[selectedIndex];
       if (branch) {
         setConfirm({ type: 'archive', branch: branch.name });
@@ -180,7 +219,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
       return;
     }
 
-    if (input === 'd') {
+    if (input === 'd' && !showArchived) {
       const branch = filteredBranches[selectedIndex];
       if (branch) {
         setConfirm({ type: 'delete', branch: branch.name });
@@ -188,37 +227,57 @@ export default function TuiApp({ initialPath = '' }: Props) {
       return;
     }
 
+    // Archived-specific actions
+    if (input === 'r' && showArchived) {
+      const branch = archived[selectedIndex];
+      if (branch) handleRestore(branch.name);
+      return;
+    }
+
+    if (input === 'D' && showArchived) {
+      const branch = archived[selectedIndex];
+      if (branch) handlePermanentDelete(branch.name);
+      return;
+    }
+
     if (key.return) {
-      const branch = filteredBranches[selectedIndex];
-      if (branch) {
-        setExpandedBranch((prev) =>
-          prev === branch.name ? null : branch.name
-        );
+      if (showArchived) {
+        const branch = archived[selectedIndex];
+        if (branch) {
+          setExpandedBranch((prev) =>
+            prev === branch.name ? null : branch.name
+          );
+        }
+      } else {
+        const branch = filteredBranches[selectedIndex];
+        if (branch) {
+          setExpandedBranch((prev) =>
+            prev === branch.name ? null : branch.name
+          );
+        }
       }
       return;
     }
 
-    if (key.upArrow && filteredBranches.length > 0) {
-      setSelectedIndex((prev) =>
-        prev <= 0 ? filteredBranches.length - 1 : prev - 1
-      );
+    const listLength = showArchived ? archived.length : filteredBranches.length;
+
+    if (key.upArrow && listLength > 0) {
+      setSelectedIndex((prev) => (prev <= 0 ? listLength - 1 : prev - 1));
       return;
     }
 
-    if (key.downArrow && filteredBranches.length > 0) {
-      setSelectedIndex((prev) =>
-        prev >= filteredBranches.length - 1 ? 0 : prev + 1
-      );
+    if (key.downArrow && listLength > 0) {
+      setSelectedIndex((prev) => (prev >= listLength - 1 ? 0 : prev + 1));
       return;
     }
 
     if (input === ' ') {
-      const branch = filteredBranches[selectedIndex];
-      if (branch) {
+      const item = showArchived ? archived[selectedIndex] : filteredBranches[selectedIndex];
+      if (item) {
         setSelectedBranches((prev) => {
           const next = new Set(prev);
-          if (next.has(branch.name)) next.delete(branch.name);
-          else next.add(branch.name);
+          if (next.has(item.name)) next.delete(item.name);
+          else next.add(item.name);
           return next;
         });
       }
@@ -245,26 +304,19 @@ export default function TuiApp({ initialPath = '' }: Props) {
 
       <StatsBar data={data} archivedCount={archived.length} loading={loading} />
 
-      <FilterBar
-        searchQuery={searchQuery}
-        statusFilter={statusFilter}
-        sortField={sortField}
-        focused={focusedSection === 'filters'}
-        onSearchChange={setSearchQuery}
-        onStatusFilterChange={setStatusFilter}
-        onSortFieldChange={setSortField}
-      />
+      <Box marginBottom={1} gap={2}>
+        <Text color={!showArchived ? COLORS.accent : COLORS.textSecondary} bold={!showArchived}>
+          Branches{data ? ` (${data.totalLocal})` : ''}
+        </Text>
+        <Text color={showArchived ? COLORS.accent : COLORS.textSecondary} bold={showArchived}>
+          Archived ({archived.length})
+        </Text>
+        <Text dimColor>Tab to switch</Text>
+      </Box>
 
-      {loading ? (
-        <Box marginY={2}>
-          <Text color={COLORS.textSecondary}>Scanning repository...</Text>
-        </Box>
-      ) : (
-        <BranchList
-          branches={branches}
-          searchQuery={searchQuery}
-          statusFilter={statusFilter}
-          sortField={sortField}
+      {showArchived ? (
+        <ArchivedList
+          archived={archived}
           selectedIndex={selectedIndex}
           selectedBranches={selectedBranches}
           expandedBranch={expandedBranch}
@@ -279,9 +331,50 @@ export default function TuiApp({ initialPath = '' }: Props) {
           onToggleExpand={(name) => {
             setExpandedBranch((prev) => (prev === name ? null : name));
           }}
-          onArchive={(name) => setConfirm({ type: 'archive', branch: name })}
-          onDelete={(name) => setConfirm({ type: 'delete', branch: name })}
+          onRestore={(name) => handleRestore(name)}
+          onDelete={(name) => handlePermanentDelete(name)}
         />
+      ) : (
+        <>
+          <FilterBar
+            searchQuery={searchQuery}
+            statusFilter={statusFilter}
+            sortField={sortField}
+            focused={focusedSection === 'filters'}
+            onSearchChange={setSearchQuery}
+            onStatusFilterChange={setStatusFilter}
+            onSortFieldChange={setSortField}
+          />
+
+          {loading ? (
+            <Box marginY={2}>
+              <Text color={COLORS.textSecondary}>Scanning repository...</Text>
+            </Box>
+          ) : (
+            <BranchList
+              branches={branches}
+              searchQuery={searchQuery}
+              statusFilter={statusFilter}
+              sortField={sortField}
+              selectedIndex={selectedIndex}
+              selectedBranches={selectedBranches}
+              expandedBranch={expandedBranch}
+              onToggleSelect={(name) => {
+                setSelectedBranches((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(name)) next.delete(name);
+                  else next.add(name);
+                  return next;
+                });
+              }}
+              onToggleExpand={(name) => {
+                setExpandedBranch((prev) => (prev === name ? null : name));
+              }}
+              onArchive={(name) => setConfirm({ type: 'archive', branch: name })}
+              onDelete={(name) => setConfirm({ type: 'delete', branch: name })}
+            />
+          )}
+        </>
       )}
 
       {confirm && (
