@@ -2,7 +2,15 @@
 
 ## Visión general
 
-La v1.0.2 añade tres pilares al proyecto: **tests automatizados** (Vitest + Playwright), **distribución vía npm** (instalable como dependencia en cualquier proyecto), y **Terminal UI** (interfaz interactiva en terminal con Ink). Se implementarán en 3 PRs independientes, en el orden indicado.
+La v1.0.2 añade tres pilares al proyecto: **tests automatizados** (Vitest + Playwright), **distribución vía npm** (instalable como dependencia en cualquier proyecto), y **Terminal UI** (interfaz interactiva en terminal con Ink). Se implementarán en 3 PRs independientes.
+
+### Estado
+
+| PR | Rama | Estado |
+|---|---|---|
+| **#1** Test Suite + Shared Types | `feat/tests` | ✅ Completado ([PR #2](https://github.com/raulfdeztdo/forgottenbranches/pull/2)) |
+| **#2** npm Package | `feat/npm-package` | ⬜ Pendiente |
+| **#3** Terminal UI | `feat/terminal-ui` | ✅ Completado ([PR #3](https://github.com/raulfdeztdo/forgottenbranches/pull/3)) |
 
 ---
 
@@ -580,6 +588,117 @@ jobs:
 3. **Ink puro** para toda la TUI. Tablas implementadas con `Box` + `flexDirection`.
 4. **Sin tests automatizados para el TUI**. La lógica ya está cubierta por unit tests de `git.ts`.
 5. **`readline` nativo de Node** para el prompt de selección Web/TUI. 0 dependencias extra.
+
+---
+
+## PR #1 — Implementación real
+
+### Shared types
+- `shared/src/index.ts` con `MergeInfo`, `BranchInfo`, `BranchStatus`, `ArchivedBranch`, `BranchesResult`
+- `BranchesResult` ampliado con `currentBranch: string | null`
+- `client/src/types.ts` eliminado, imports migrados a `@forgottenbranches/types`
+
+### Tests implementados (106 total, todos pasan)
+
+| Fichero | Tests | Capa |
+|---|---|---|
+| `server/src/git.test.ts` | 39 | Unit: detectMainBranch, getBranches (6 estados), deleteBranch (safe/force/protected), archiveBranch (con -f), restoreArchivedBranch, deleteArchivedBranch, getArchivedBranches, deleteBranches (bulk), edge cases |
+| `server/src/app.test.ts` | 15 | Integration: todos los endpoints REST (branches, archive, bulk-delete, archived, unarchive), validación de path, manejo de errores |
+| `client/src/components/ToastContext.test.tsx` | 6 | Component: success/error/info toasts, dismiss timeout/click, múltiples |
+| `client/src/components/ForceDeleteModal.test.tsx` | 7 | Component: render, selección/deselección, onConfirm, onClose, singular/plural |
+| `e2e/app.spec.ts` | 4 | E2E: empty state, scan repo, stats bar, legend |
+
+### Scripts
+```bash
+pnpm test          # 106 tests unit + integration
+pnpm test:watch    # modo watch
+pnpm test:ui       # UI visual
+pnpm test:coverage # cobertura
+pnpm test:e2e      # Playwright
+```
+
+---
+
+## PR #3 — Implementación real
+
+### Stack
+- **Ink 7.0.3** (React para terminal) + **React 19.2.6**
+- **lucide-react 0.469.0** (compatibilidad React 19)
+- **ink-text-input 6.0.0** (input de texto en terminal)
+- Servidor migrado a ESM (`"type": "module"`, `module: Node16`, imports con `.js`)
+
+### CLI (3 modos)
+```bash
+forgottenbranches            # prompt: 1. Web / 2. Terminal
+forgottenbranches --tui      # TUI directa
+forgottenbranches --web      # navegador
+forgottenbranches --tui /path/repo  # TUI con path auto-cargado
+```
+
+### TUI — Estructura de ficheros
+```
+server/src/tui/
+├── app.tsx              # Orquestador: estado global + keyboard handler
+├── colors.ts            # One Dark Pro → ANSI
+├── components/
+│   ├── Header.tsx       # Título, input path, botón Scan
+│   ├── StatsBar.tsx     # Local/Forgotten/Main/Current/Archived
+│   ├── FilterBar.tsx    # Search, status filter, sort
+│   ├── BranchList.tsx   # Lista filtrada/ordenada de ramas
+│   ├── BranchRow.tsx    # Fila: checkbox, 🔒, nombre, status, edad
+│   ├── BranchDetail.tsx # Panel expandible: commit, merge, acciones
+│   ├── ArchivedList.tsx # Vista de ramas archivadas
+│   ├── ConfirmDialog.tsx # Confirmación archive/delete
+│   ├── Toast.tsx        # Notificaciones success/error
+│   └── HelpBar.tsx      # 3 secciones: Navigation, Actions, Archived
+└── hooks/
+    ├── useGitData.ts    # Llama a git.ts directamente
+    └── useKeyboard.ts   # Wrapper useInput
+```
+
+### Teclas
+| Tecla | Acción |
+|---|---|
+| `↑`/`↓` | Navegar ramas / ciclar filtros |
+| `←`/`→` | Ciclar campo de orden |
+| `↵` | Expandir/colapsar detalle |
+| `Space` | Seleccionar rama |
+| `Tab` | Alternar Branches / Archived |
+| `/` | Editar path |
+| `f` | Foco en filtros |
+| `s` | Escanear repo |
+| `a` | Archivar (simple o en masa) |
+| `d` | Borrar (simple o en masa) |
+| `r` | Restaurar archivada (simple o en masa) |
+| `D` | Borrar permanente archivada (simple o en masa) |
+| `q`/`Esc` | Salir |
+
+### Ramas protegidas (Web + TUI)
+- 🔒 en `main`/`master` y rama actual
+- Motivo: "main branch" o "current checked-out branch"
+- Acciones bloqueadas con mensaje descriptivo
+
+### Tests del TUI (35 nuevos, dentro de los 106)
+| Fichero | Tests |
+|---|---|
+| `server/src/cli.test.ts` | 11: argument parsing, --web/--tui, showPrompt, getVersion |
+| `server/src/tui/colors.test.ts` | 4: validación COLORS y STATUS_COLORS |
+| `server/src/tui/hooks/useGitData.test.ts` | 3: fetch, error, graceful fallback |
+| `server/src/tui/components/BranchRow.test.ts` | 7: formatAge, truncado 40 chars |
+| `server/src/tui/components/BranchList.test.ts` | 10 + 4: filtros, ordenación, detección protegidas |
+
+---
+
+## PR #2 — Pendiente
+
+### Tareas restantes
+- Hacer `package.json` publicable (`private: false`, `main`, `bin`, `files`)
+- Instalar `tsup` y crear config para bundle único
+- Crear API programática (`server/src/api.ts`)
+- Actualizar `bin/cli.js` para compatibilidad con instalación npm local
+- Script `prepublishOnly` + build de distribución
+- Actualizar README con instrucciones `npm install forgottenbranches`
+- GitHub Action de CI/CD para publicar en npm al pushear tag `v*`
 
 ---
 
