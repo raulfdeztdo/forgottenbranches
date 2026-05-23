@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Box, Text, useApp } from 'ink';
 import { COLORS } from './colors.js';
 import { useGitData } from './hooks/useGitData.js';
@@ -55,6 +55,13 @@ export default function TuiApp({ initialPath = '' }: Props) {
     setFocusedSection('list');
     scan();
   }, [scan]);
+
+  // When scan fails, focus back to input so user can fix path
+  useEffect(() => {
+    if (error) {
+      setFocusedSection('input');
+    }
+  }, [error]);
 
   const handleArchive = useCallback(async (name: string) => {
     try {
@@ -411,8 +418,9 @@ export default function TuiApp({ initialPath = '' }: Props) {
       />
 
       {error && (
-        <Box marginY={1}>
+        <Box marginY={1} flexDirection="column">
           <Text color={COLORS.danger}>Error: {error}</Text>
+          <Text color={COLORS.textSecondary}>Edit the path above and press Enter or s to retry</Text>
         </Box>
       )}
 
