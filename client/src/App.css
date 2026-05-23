@@ -749,6 +749,25 @@ body {
   letter-spacing: 0.2px;
 }
 
+.protected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 4px;
+  font-size: 0.65rem;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.detail-protected-hint {
+  color: var(--accent);
+  font-size: 0.78rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 0;
+}
+
 .upstream-cell {
   max-width: 180px;
 }

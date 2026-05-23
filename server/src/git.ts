@@ -145,7 +145,7 @@ export async function getBranches(
   repoPath: string
 ): Promise<BranchesResult> {
   const mainBranch = await detectMainBranch(repoPath);
-  const [rawBranches, mergedSet, checkoutDates] = await Promise.all([
+  const [rawBranches, mergedSet, checkoutDates, currentBranch] = await Promise.all([
     git(repoPath, [
       'for-each-ref',
       '--sort=-committerdate',
@@ -154,12 +154,14 @@ export async function getBranches(
     ]),
     getMergedBranches(repoPath, mainBranch),
     getCheckoutDates(repoPath),
+    detectCurrentBranch(repoPath),
   ]);
 
   if (!rawBranches) {
     return {
       branches: [],
       mainBranch,
+      currentBranch,
       totalLocal: 0,
       totalForgotten: 0,
     };
@@ -232,6 +234,7 @@ export async function getBranches(
   return {
     branches,
     mainBranch,
+    currentBranch,
     totalLocal: branches.length,
     totalForgotten,
   };

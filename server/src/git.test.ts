@@ -114,7 +114,7 @@ describe('getBranches', () => {
     expect(result.branches).toEqual([]);
     expect(result.totalLocal).toBe(0);
     expect(result.totalForgotten).toBe(0);
-    expect(execFileMock).toHaveBeenCalledTimes(4);
+    expect(execFileMock).toHaveBeenCalledTimes(5);
   });
 
   it('classifies an active branch correctly', async () => {
@@ -243,7 +243,8 @@ describe('getBranches', () => {
         ])
       )
       .mockReturnValueOnce('feature/merged\nmain\n')
-      .mockReturnValueOnce('');
+      .mockReturnValueOnce('')
+      .mockReturnValueOnce('* feature/merged\n  main\n'); // detectCurrentBranch
     // Merge info lookup
     execFileMock.mockReturnValueOnce(
       'def5678|2025-06-02 10:00:00 +0000|Merge branch feature/merged'

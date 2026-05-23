@@ -16,6 +16,7 @@ import {
   X,
   Square,
   CheckSquare,
+  Lock,
 } from 'lucide-react';
 import { BranchInfo } from '@forgottenbranches/types';
 import { STATUS_COLORS, STATUS_LABELS } from '../statusConfig';
@@ -24,6 +25,8 @@ import { useToast } from './ToastContext';
 interface Props {
   branch: BranchInfo;
   repoPath: string;
+  mainBranch?: string;
+  currentBranch?: string | null;
   selected: boolean;
   onToggleSelect: () => void;
   onDelete: () => void;
@@ -63,12 +66,15 @@ function formatRelative(days: number): string {
 export default function BranchDetail({
   branch,
   repoPath,
+  mainBranch,
+  currentBranch,
   selected,
   onToggleSelect,
   onDelete,
   onArchive,
 }: Props) {
   const { toast } = useToast();
+  const isProtected = branch.name === mainBranch || branch.name === currentBranch;
   const [expanded, setExpanded] = useState(false);
   const [showDelete, setShowDelete] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
@@ -160,6 +166,11 @@ export default function BranchDetail({
             <span className="branch-name-text" title={branch.name}>
               {branch.name}
             </span>
+            {isProtected && (
+              <span className="protected-badge" title="Protected branch — cannot be archived or deleted">
+                <Lock size={11} />
+              </span>
+            )}
             {branch.upstreamGone && (
               <span className="gone-badge">
                 <AlertTriangle size={10} /> gone
@@ -328,7 +339,7 @@ export default function BranchDetail({
                     <p className="delete-error">{actionError}</p>
                   )}
 
-                  {!showArchive && !showDelete && (
+                  {!showArchive && !showDelete && !isProtected && (
                     <div className="action-buttons">
                       <button
                         className="action-btn action-archive"
@@ -352,6 +363,12 @@ export default function BranchDetail({
                         <Trash2 size={15} /> Delete
                       </button>
                     </div>
+                  )}
+
+                  {!showArchive && !showDelete && isProtected && (
+                    <p className="detail-protected-hint">
+                      <Lock size={12} /> This branch is protected and cannot be archived or deleted.
+                    </p>
                   )}
 
                   {showArchive && (
