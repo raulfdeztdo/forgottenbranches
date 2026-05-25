@@ -1,6 +1,6 @@
 {
   "name": "forgottenbranches",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Find and clean up abandoned local git branches",
   "private": false,
   "type": "module",
