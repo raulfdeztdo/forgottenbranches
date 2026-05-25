@@ -14,6 +14,13 @@ export default defineConfig({
   sourcemap: false,
   platform: 'node',
   target: 'node18',
+  banner: {
+    js: `
+import { createRequire as __createRequireCR } from 'module';
+const __requireCR = __createRequireCR(import.meta.url);
+globalThis.require = __requireCR;
+`,
+  },
   esbuildOptions(options) {
     options.define = {
       ...options.define,
