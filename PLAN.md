@@ -8,9 +8,11 @@ La v1.0.2 añade tres pilares al proyecto: **tests automatizados** (Vitest + Pla
 
 | PR | Rama | Estado |
 |---|---|---|
-| **#1** Test Suite + Shared Types | `feat/tests` | ✅ Completado ([PR #2](https://github.com/raulfdeztdo/forgottenbranches/pull/2)) |
-| **#2** npm Package | `feat/npm-package` | ⬜ Pendiente |
-| **#3** Terminal UI | `feat/terminal-ui` | ✅ Completado ([PR #3](https://github.com/raulfdeztdo/forgottenbranches/pull/3)) |
+| **#1** Test Suite + Shared Types | `feat/tests` | ✅ Completado y mergeado ([PR #2](https://github.com/raulfdeztdo/forgottenbranches/pull/2)) |
+| **#2** npm Package | `feat/npm-package` | ⬜ Pendiente (próxima versión) |
+| **#3** Terminal UI | `feat/terminal-ui` | ✅ Completado y mergeado vía feat/tests ([PR #3](https://github.com/raulfdeztdo/forgottenbranches/pull/3)) |
+
+### Versión publicada: [v1.0.2](https://github.com/raulfdeztdo/forgottenbranches/releases/tag/v1.0.2)
 
 ---
 
@@ -689,7 +691,7 @@ server/src/tui/
 
 ---
 
-## PR #2 — Pendiente
+## PR #2 — Pendiente (para v1.1.0)
 
 ### Tareas restantes
 - Hacer `package.json` publicable (`private: false`, `main`, `bin`, `files`)

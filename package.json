@@ -1,6 +1,6 @@
 {
   "name": "forgottenbranches",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Find and clean up abandoned local git branches",
   "private": true,
   "packageManager": "pnpm@11.1.1",

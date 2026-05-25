@@ -34,6 +34,7 @@
     <img src="https://img.shields.io/badge/Git-F05032?style=flat&logo=git&logoColor=white" alt="Git" />
     <img src="https://img.shields.io/badge/Vitest-4-6E9F18?style=flat&logo=vitest&logoColor=white" alt="Vitest" />
     <img src="https://img.shields.io/badge/Playwright-45ba4b?style=flat&logo=playwright&logoColor=white" alt="Playwright" />
+    <img src="https://img.shields.io/badge/Ink-7-764ABC?style=flat&logo=react&logoColor=white" alt="Ink" />
   </p>
 
   <br />
@@ -55,7 +56,10 @@
       </ul>
     </li>
     <li><a href="#uso">Uso</a></li>
+    <li><a href="#terminal-ui">Terminal UI (TUI)</a></li>
+    <li><a href="#ramas-protegidas">Ramas protegidas</a></li>
     <li><a href="#funcionalidades">Funcionalidades</a></li>
+    <li><a href="#testing">Testing</a></li>
     <li><a href="#desarrollo">Desarrollo</a></li>
     <li><a href="#cómo-funciona">Cómo funciona</a></li>
     <li><a href="#licencia">Licencia</a></li>
@@ -67,14 +71,16 @@
 
 Muchas veces se suben ramas a producción, se mergean y se quedan abandonadas en local sin que nadie las borre. Con el tiempo se acumulan decenas de ramas que ensucian el output de `git branch` y dificultan el día a día.
 
-**Forgotten Branches** escanea cualquier repositorio git, analiza cada rama local y te dice cuáles son seguras de eliminar, cuáles es mejor archivar y cuáles están activas. Todo desde una interfaz web que se abre sola al ejecutar un comando.
+**Forgotten Branches** escanea cualquier repositorio git, analiza cada rama local y te dice cuáles son seguras de eliminar, cuáles es mejor archivar y cuáles están activas. Ofrece dos interfaces: una **Web UI** que se abre en el navegador y una **Terminal UI (TUI)** interactiva con navegación por teclado.
 
 ### ¿Por qué esta herramienta?
 
 - **Sin depender de un servidor** — Todo se ejecuta en local, sin conexión externa.
 - **Clasificación inteligente** — No solo lista ramas: las clasifica según su estado real (mergeadas, huérfanas, abandonadas...).
+- **Dos interfaces** — Web UI moderna con tema One Dark Pro, y TUI interactiva para la terminal (Ink + React).
 - **Archivado** — Guarda el historial de ramas que ya no necesitas sin perder la referencia.
 - **Borrado en masa** — Limpia decenas de ramas en segundos.
+- **Protección de ramas** — `main`/`master` y la rama actual están protegidas contra borrado/archivado.
 
 ## Plataformas soportadas
 
@@ -112,14 +118,21 @@ Hace `git pull`, reinstala dependencias si hay nuevas y recompila. Si ya estás 
 ## Uso
 
 ```bash
-# Abrir la aplicación
+# Modo interactivo — elige entre Web UI y Terminal
 forgottenbranches
 
+# Web UI directamente (abre el navegador)
+forgottenbranches --web
+
+# Terminal UI directamente
+forgottenbranches --tui
+
 # Abrir y escanear un repo directamente
-forgottenbranches /home/usuario/proyectos/mi-app
+forgottenbranches --web /home/usuario/proyectos/mi-app
+forgottenbranches --tui /home/usuario/proyectos/mi-app
 ```
 
-Al abrirse el navegador, pegas la ruta de un repositorio git, pulsas **Scan Branches** y la aplicación muestra cada rama local con todos sus detalles.
+En el modo interactivo, la aplicación muestra un prompt para elegir entre la interfaz web y la interfaz de terminal.
 
 ### Estados de las ramas
 
@@ -131,17 +144,55 @@ Al abrirse el navegador, pegas la ruta de un repositorio git, pulsas **Scan Bran
 | **Merged** | 🟡 | Ya está en main, upstream sigue vivo |
 | **Abandoned** | ⚪ | Sin actividad en +90 días (o +60 sin upstream) |
 
+## Terminal UI (TUI)
+
+La TUI ofrece una experiencia interactiva completa directamente en la terminal, construida con [Ink](https://github.com/vadimdemedes/ink) (React para terminal) y React 19.
+
+### Navegación por teclado
+
+| Tecla | Acción |
+|---|---|
+| `↑` / `↓` | Navegar entre ramas / ciclar filtros |
+| `←` / `→` | Cambiar campo de ordenación |
+| `↵` Enter | Expandir/colapsar detalle de rama |
+| `Space` | Seleccionar/deseleccionar rama |
+| `Tab` | Alternar vista Branches / Archived |
+| `/` | Editar la ruta del repositorio |
+| `s` | Escanear repositorio |
+| `f` | Enfocar filtros (estado y orden) |
+| `a` | Archivar rama(s) seleccionada(s) |
+| `d` | Eliminar rama(s) seleccionada(s) |
+| `r` | Restaurar rama archivada (en vista Archived) |
+| `D` | Eliminar permanentemente archivada |
+| `q` / `Esc` | Salir |
+
+### Operaciones en masa
+
+Selecciona varias ramas con `Space` y ejecuta la acción (`a` archivar / `d` eliminar / `r` restaurar). Un contador muestra cuántas ramas están seleccionadas y qué acción se ejecutará.
+
+## Ramas protegidas
+
+Las ramas `main`, `master` y la rama actualmente activa (checked-out) están protegidas contra archivado y eliminación, tanto en la Web UI como en la TUI.
+
+- **Indicador visual**: icono 🔒 junto al nombre de la rama
+- **Motivo**: tooltip/texto indicando si es _"main branch"_ o _"current checked-out branch"_
+- **Acciones bloqueadas**: los botones de Archive/Delete se ocultan o muestran un mensaje explicativo
+
 ## Funcionalidades
 
+- **Dos interfaces** — Web UI (One Dark Pro) y Terminal UI (Ink + React) con navegación completa por teclado.
 - **Análisis completo por rama** — nombre, upstream, último commit (hash, autor, fecha, mensaje), antigüedad, último checkout del reflog.
 - **Información de merge** — qué commit la mergeó en main, cuándo y con qué mensaje.
-- **Panel de detalle desplegable** — clic en cualquier rama para ver todos los datos.
+- **Panel de detalle desplegable** — clic en cualquier rama para ver todos los datos (Web UI); `↵` para expandir (TUI).
+- **Ramas protegidas** — `main`, `master` y rama actual marcadas con 🔒. No se pueden archivar ni borrar.
+- **Vista de archivadas** — Tab para alternar entre ramas activas y archivadas. Restaurar o eliminar permanentemente.
 - **Eliminar ramas** — individual o en masa, con borrado seguro (`-d`) o forzado (`-D`).
-- **Archivar ramas** — crea un tag anotado `archive/<nombre>` y borra la rama local. La rama desaparece de `git branch` pero se puede recuperar.
+- **Archivar ramas** — crea un tag anotado `archive/<nombre>` y borra la rama local.
 - **Desarchivar** — restaura la rama desde el tag de archivo.
 - **Selección múltiple** — checkboxes en cada fila con barra de acciones para operar sobre varias ramas a la vez.
-- **Historial de proyectos** — las rutas escaneadas se guardan en `localStorage` y aparecen como sugerencias al hacer foco en el campo de búsqueda.
-- **Filtros** — por nombre de rama y por estado mediante pills interactivas.
+- **Operaciones en masa en TUI** — `Space` para seleccionar, `a`/`d`/`r`/`D` para actuar sobre todas las seleccionadas.
+- **Historial de proyectos** — las rutas escaneadas se guardan en `localStorage` (Web UI).
+- **Filtros** — por nombre de rama y por estado mediante pills interactivas (Web) o teclado (TUI).
 - **Ordenación** — por nombre, fecha de commit, antigüedad o estado (por defecto: activas primero).
 
 ## Testing
