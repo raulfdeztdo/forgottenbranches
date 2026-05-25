@@ -53,12 +53,13 @@ function openBrowser(url: string): void {
 
 // ── Web mode ──
 
-async function startWebMode(repoPath?: string) {
+async function startWebMode(repoPath?: string, locked = false) {
   const port = await findPort(3001);
   const app = createApp();
-  const urlPath = repoPath
-    ? `?path=${encodeURIComponent(repoPath)}`
-    : '';
+  const params = new URLSearchParams();
+  if (repoPath) params.set('path', repoPath);
+  if (locked) params.set('locked', '1');
+  const urlPath = params.toString() ? `?${params.toString()}` : '';
 
   app.listen(port, '127.0.0.1', () => {
     const url = `http://localhost:${port}/${urlPath}`;
@@ -70,13 +71,13 @@ async function startWebMode(repoPath?: string) {
 
 // ── TUI mode ──
 
-async function startTuiMode(repoPath?: string) {
+async function startTuiMode(repoPath?: string, locked = false) {
   const [{ render }, { createElement }, { default: TuiApp }] = await Promise.all([
     import('ink'),
     import('react'),
     import('./tui/app.js'),
   ]);
-  const { unmount } = render(createElement(TuiApp, { initialPath: repoPath }));
+  const { unmount } = render(createElement(TuiApp, { initialPath: repoPath, locked }));
   process.on('SIGINT', () => {
     unmount();
     process.exit(0);
@@ -117,6 +118,8 @@ export async function main(argv: string[] = process.argv) {
   const explicitPath = args.filter((a) => a !== '--tui' && a !== '--web').find((a) => !a.startsWith('--'));
   // Auto-detect project path when installed as dependency (use cwd)
   const repoPath = explicitPath || process.cwd();
+  // Detect if installed as local project dependency (not global)
+  const isLocalDep = process.argv[1]?.includes('node_modules/');
 
   let mode: 'web' | 'tui';
 
@@ -129,9 +132,9 @@ export async function main(argv: string[] = process.argv) {
   }
 
   if (mode === 'tui') {
-    await startTuiMode(repoPath);
+    await startTuiMode(repoPath, isLocalDep);
   } else {
-    await startWebMode(repoPath);
+    await startWebMode(repoPath, isLocalDep);
   }
 }
 

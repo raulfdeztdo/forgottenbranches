@@ -129,7 +129,9 @@ describe('main() argument parsing', () => {
   it('extracts repo path from args', async () => {
     await main(['node', 'cli', '--tui', '/my/repo']);
 
-    expect(mockRender).toHaveBeenCalledWith([MockTuiApp, { initialPath: '/my/repo' }]);
+    expect(mockRender).toHaveBeenCalledWith(
+      [MockTuiApp, expect.objectContaining({ initialPath: '/my/repo' })]
+    );
   });
 
   it('extracts repo path with --web flag', async () => {
