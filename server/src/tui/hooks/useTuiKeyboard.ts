@@ -96,6 +96,7 @@ export function useTuiKeyboard(deps: KeyboardHandlerDeps) {
     archived,
     mainBranch,
     currentBranch,
+    locked,
     confirm,
     setConfirm,
     onScan,

@@ -447,8 +447,19 @@ export default function App() {
       )}
 
       {isLocked && (
-        <div className="locked-bar">
-          <Lock size={14} /> Scanning: <strong>{repoPath}</strong>
+        <div className="search-bar">
+          <div className="path-input-wrapper">
+            <div className="path-input-group">
+              <Lock size={17} className="input-icon" />
+              <input
+                type="text"
+                className="path-input"
+                value={repoPath}
+                readOnly
+                tabIndex={-1}
+              />
+            </div>
+          </div>
         </div>
       )}
 
