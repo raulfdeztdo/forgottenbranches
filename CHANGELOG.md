@@ -36,5 +36,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `spawn git ENOENT` fixed by passing `process.env` to `execFile` in git operations
 - `__dirname` replaced with `fileURLToPath` shim for ESM compatibility in `app.ts` and `cli.ts`
 
+[1.0.4]: https://github.com/raulfdeztdo/forgottenbranches/compare/v1.0.3...v1.0.4
+
+## [1.0.4] — 2026-05-25
+
+### Added
+- **GitHub Actions publish workflow** — automatic publish to npm and GitHub Packages on tag push (`v*`)
+- **npm + GitHub Packages badges** — linked in README
+
+### Fixed
+- **85 React Review warnings** — `button-has-type`, `control-has-associated-label`, `click-events-have-key-events`, `no-static-element-interactions`, `async-await-in-loop`, `design-no-em-dash`, `no-initialize-state`, `js-flatmap-filter`, `js-tosorted-immutable`, `js-set-map-lookups`, `exhaustive-deps`, `prefer-tag-over-role`, `no-noninteractive-element-interactions`, and more
+
+## [1.0.3] — 2026-05-25
+
+### Added
+- **npm distribution** — installable as project dependency: `npm install forgottenbranches`
+- **tsup bundle** — single-file ESM bundle (`dist/cli.js`, ~3 MB) with all deps inline
+- **Programmatic API** — `import { getBranches, archiveBranch, ... } from 'forgottenbranches'`
+- **Auto-detect project path** — uses `process.cwd()` when installed as dependency
+- **Locked mode** — when installed locally, path input is locked to the project (no editing)
+
+### Changed
+- Root `package.json` made public (`private: false`, `type: module`)
+- `bin/cli.js` imports from `dist/` instead of `server/dist/`
+- Removed `forgottenbranches: link:` circular dependency from pnpm workspace
+
+[1.0.3]: https://github.com/raulfdeztdo/forgottenbranches/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/raulfdeztdo/forgottenbranches/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/raulfdeztdo/forgottenbranches/compare/v1.0.0...v1.0.1
+[1.0.0]: https://github.com/raulfdeztdo/forgottenbranches/releases/tag/v1.0.0
