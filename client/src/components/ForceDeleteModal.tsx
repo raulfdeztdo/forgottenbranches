@@ -45,20 +45,13 @@ export default function ForceDeleteModal({
   return (
     <div
       className="modal-backdrop"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClose();
-        }
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
       }}
-      role="button"
-      tabIndex={0}
     >
       <dialog
         open
         className="modal"
-        onClick={(e) => e.stopPropagation()}
         aria-modal="true"
         aria-labelledby="fdm-title"
       >
@@ -80,20 +73,13 @@ export default function ForceDeleteModal({
           this action is irreversible and may cause data loss.
         </p>
 
-        <ul className="fdm-list">
+        <div className="fdm-list">
           {failedBranches.map((f) => (
-            <li
+            <button
               key={f.branch}
+              type="button"
               className={`fdm-item ${selected.has(f.branch) ? 'fdm-item--selected' : ''}`}
               onClick={() => toggle(f.branch)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  toggle(f.branch);
-                }
-              }}
-              role="button"
-              tabIndex={0}
             >
               <input
                 type="checkbox"
@@ -106,9 +92,9 @@ export default function ForceDeleteModal({
               <GitBranch size={13} className="fdm-branch-icon" />
               <span className="fdm-branch-name">{f.branch}</span>
               <span className="fdm-reason">{f.message}</span>
-            </li>
+            </button>
           ))}
-        </ul>
+        </div>
 
         <div className="modal-footer">
           <button type="button" className="modal-btn modal-btn-cancel" onClick={onClose} disabled={deleting}>

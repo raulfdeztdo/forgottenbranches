@@ -211,17 +211,9 @@ export default function BranchTable({
           <thead>
             <tr>
               <th className="th-check">
-                <span
+                <button
+                  type="button"
                   className={`check-cell ${allChecked ? 'checked' : ''}`}
-                  role="button"
-                  tabIndex={0}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      toggleSelectAll();
-                    }
-                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleSelectAll();
@@ -232,7 +224,7 @@ export default function BranchTable({
                   ) : (
                     <Square size={15} />
                   )}
-                </span>
+                </button>
               </th>
               <th onClick={() => toggleSort('name')}>
                 Branch

@@ -7,9 +7,10 @@ import {
   Lock,
 } from 'lucide-react';
 import { BranchesResult, ArchivedBranch } from '@forgottenbranches/types';
-import { STATUS_COLORS } from './statusConfig';
 import BranchTable from './components/BranchTable';
 import ArchivedTable from './components/ArchivedTable';
+import StatsBar from './components/StatsBar';
+import Legend from './components/Legend';
 import { useToast } from './components/ToastContext';
 import ForceDeleteModal, { FailedBranch } from './components/ForceDeleteModal';
 
@@ -49,7 +50,7 @@ export default function App() {
   const { toast } = useToast();
   const [repoPath, setRepoPath] = useState(initialParams.path);
   const [isLocked] = useState(initialParams.locked);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(!!initialParams.path);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<BranchesResult | null>(null);
@@ -422,17 +423,9 @@ export default function App() {
                   onClick={() => selectRecent(p)}
                 >
                   <span className="recent-path">{p}</span>
-                  <span
+                  <button
+                    type="button"
                     className="recent-remove"
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        removeRecent(p);
-                      }
-                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       removeRecent(p);
@@ -440,7 +433,7 @@ export default function App() {
                     title="Remove from history"
                   >
                     <X size={12} />
-                  </span>
+                  </button>
                 </button>
               ))}
             </div>
@@ -491,61 +484,12 @@ export default function App() {
 
       {data && (
         <>
-          <div className="stats">
-            <div
-              className="stat"
-              onClick={showArchived ? toggleArchived : undefined}
-              onKeyDown={
-                showArchived
-                  ? (e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggleArchived();
-                    }
-                  }
-                  : undefined
-              }
-              role={showArchived ? 'button' : undefined}
-              tabIndex={showArchived ? 0 : undefined}
-              style={showArchived ? { cursor: 'pointer' } : undefined}
-            >
-              <span className="stat-value">{data.totalLocal}</span>
-              <span className="stat-label">Local Branches</span>
-            </div>
-            <div className="stat stat-warn">
-              <span className="stat-value">{data.totalForgotten}</span>
-              <span className="stat-label">Forgotten / Orphan</span>
-            </div>
-            <div className="stat">
-              <span className="stat-value">{data.mainBranch}</span>
-              <span className="stat-label">Main Branch</span>
-            </div>
-            {data.currentBranch && (
-              <div className="stat stat-current">
-                <span className="stat-value">{data.currentBranch}</span>
-                <span className="stat-label">Current Branch</span>
-              </div>
-            )}
-            <div
-              className={`stat stat-tab${showArchived ? ' stat-tab--active' : ''}`}
-              onClick={!showArchived ? toggleArchived : undefined}
-              onKeyDown={
-                !showArchived
-                  ? (e: React.KeyboardEvent) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault();
-                      toggleArchived();
-                    }
-                  }
-                  : undefined
-              }
-              role={!showArchived ? 'button' : undefined}
-              tabIndex={!showArchived ? 0 : undefined}
-            >
-              <span className="stat-value">{archivedCount}</span>
-              <span className="stat-label">Archived</span>
-            </div>
-          </div>
+          <StatsBar
+            data={data}
+            archivedCount={archivedCount}
+            showArchived={showArchived}
+            onToggleArchived={toggleArchived}
+          />
 
           {showArchived ? (
             archivedLoading ? (
@@ -572,46 +516,7 @@ export default function App() {
             />
           )}
 
-          <div className="legend">
-            <h3 className="legend-title">How branches are classified</h3>
-            <div className="legend-grid">
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.active }} />
-                <div>
-                  <strong>Active</strong>
-                  <p>Recent commits and a valid upstream. In use.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.forgotten }} />
-                <div>
-                  <strong>Forgotten</strong>
-                  <p>Merged into main but upstream was deleted. Safe to remove.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.merged }} />
-                <div>
-                  <strong>Merged</strong>
-                  <p>Already merged into main. Upstream still exists.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.orphan }} />
-                <div>
-                  <strong>Orphan</strong>
-                  <p>Remote upstream deleted, never merged. Review first.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.abandoned }} />
-                <div>
-                  <strong>Abandoned</strong>
-                  <p>No commits in 90+ days (or 60 without upstream).</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Legend />
         </>
       )}
 

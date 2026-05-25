@@ -249,24 +249,16 @@ export default function ArchivedTable({ branches, onUnarchive, onDelete }: Props
             <thead>
               <tr>
                 <th>
-                  <span
+                  <button
+                    type="button"
                     className={`check-cell ${allChecked ? 'checked' : ''}`}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === ' ') {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        toggleAll();
-                      }
-                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleAll();
                     }}
                   >
                     {allChecked ? <CheckSquare size={15} /> : <Square size={15} />}
-                  </span>
+                  </button>
                 </th>
                 <th>Branch</th>
                 <th>Last Commit</th>
