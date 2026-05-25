@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 import {
   getBranches,
   deleteBranch,
@@ -12,7 +15,7 @@ import {
   restoreArchivedBranch,
   deleteArchivedBranch,
   getArchivedBranches,
-} from './git';
+} from './git.js';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 

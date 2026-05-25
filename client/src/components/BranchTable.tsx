@@ -13,6 +13,7 @@ import BranchDetail from './BranchDetail';
 interface Props {
   branches: BranchInfo[];
   mainBranch: string;
+  currentBranch?: string | null;
   repoPath: string;
   refreshing?: boolean;
   onBranchDeleted: () => void;
@@ -41,7 +42,8 @@ const STATUS_SORT = [
 
 export default function BranchTable({
   branches,
-  mainBranch: _mainBranch,
+  mainBranch,
+  currentBranch,
   repoPath,
   refreshing,
   onBranchDeleted,
@@ -280,11 +282,13 @@ export default function BranchTable({
               </tr>
             )}
             {sorted.map((b) => (
-              <BranchDetail
-                key={b.name}
-                branch={b}
-                repoPath={repoPath}
-                selected={selected.has(b.name)}
+            <BranchDetail
+              key={b.name}
+              branch={b}
+              repoPath={repoPath}
+              mainBranch={mainBranch}
+              currentBranch={currentBranch}
+              selected={selected.has(b.name)}
                 onToggleSelect={() => toggleSelect(b.name)}
                 onDelete={() => {
                   clearSelection();

@@ -472,6 +472,12 @@ export default function App() {
               <span className="stat-value">{data.mainBranch}</span>
               <span className="stat-label">Main Branch</span>
             </div>
+            {data.currentBranch && (
+              <div className="stat stat-current">
+                <span className="stat-value">{data.currentBranch}</span>
+                <span className="stat-label">Current Branch</span>
+              </div>
+            )}
             <div
               className={`stat stat-tab${showArchived ? ' stat-tab--active' : ''}`}
               onClick={!showArchived ? toggleArchived : undefined}
@@ -499,6 +505,7 @@ export default function App() {
             <BranchTable
               branches={data.branches}
               mainBranch={data.mainBranch}
+              currentBranch={data.currentBranch}
               repoPath={repoPath.trim()}
               refreshing={refreshing}
               onBranchDeleted={refreshBranches}

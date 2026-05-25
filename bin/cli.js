@@ -1,2 +1,7 @@
 #!/usr/bin/env node
-require('../server/dist/cli.js');
+import('../server/dist/cli.js').then(({ main }) => {
+  main(process.argv).catch((err) => {
+    console.error('Failed to start:', err);
+    process.exit(1);
+  });
+});

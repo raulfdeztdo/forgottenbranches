@@ -1,7 +1,13 @@
-import { createApp } from './app';
+import { createApp } from './app.js';
 import { execFile } from 'child_process';
 import { readFileSync } from 'fs';
-import { join } from 'path';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+import * as readline from 'readline';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ── Shared helpers ──
 
 function getVersion(): string {
   try {
@@ -45,10 +51,11 @@ function openBrowser(url: string): void {
   });
 }
 
-async function main() {
+// ── Web mode ──
+
+async function startWebMode(repoPath?: string) {
   const port = await findPort(3001);
   const app = createApp();
-  const repoPath = process.argv[2] || '';
   const urlPath = repoPath
     ? `?path=${encodeURIComponent(repoPath)}`
     : '';
@@ -61,7 +68,76 @@ async function main() {
   });
 }
 
-main().catch((err) => {
-  console.error('Failed to start:', err);
-  process.exit(1);
-});
+// ── TUI mode ──
+
+async function startTuiMode(repoPath?: string) {
+  const [{ render }, { createElement }, { default: TuiApp }] = await Promise.all([
+    import('ink'),
+    import('react'),
+    import('./tui/app.js'),
+  ]);
+  const { unmount } = render(createElement(TuiApp, { initialPath: repoPath }));
+  process.on('SIGINT', () => {
+    unmount();
+    process.exit(0);
+  });
+}
+
+// ── Prompt mode ──
+
+function showPrompt(): Promise<'web' | 'tui'> {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    console.log('');
+    console.log(`  ⚡ Forgotten Branches v${getVersion()}`);
+    console.log('');
+    console.log('  How would you like to proceed?');
+    console.log('');
+    console.log('    1. Web UI    (opens in your browser)');
+    console.log('    2. Terminal  (interactive TUI)');
+    console.log('');
+    rl.question('  Enter 1 or 2: ', (answer) => {
+      rl.close();
+      const trimmed = answer.trim();
+      if (trimmed === '2') resolve('tui');
+      else resolve('web');
+    });
+  });
+}
+
+// ── Entry point ──
+
+export async function main(argv: string[] = process.argv) {
+  const args = argv.slice(2);
+  const modeFlag = args.find((a) => a === '--tui' || a === '--web');
+  const repoPath = args.filter((a) => a !== '--tui' && a !== '--web').find((a) => !a.startsWith('--'));
+
+  let mode: 'web' | 'tui';
+
+  if (modeFlag === '--tui') {
+    mode = 'tui';
+  } else if (modeFlag === '--web') {
+    mode = 'web';
+  } else {
+    mode = await showPrompt();
+  }
+
+  if (mode === 'tui') {
+    await startTuiMode(repoPath);
+  } else {
+    await startWebMode(repoPath);
+  }
+}
+
+// Direct execution (ESM)
+const isMain = process.argv[1] && import.meta.url.endsWith(process.argv[1]);
+if (isMain) {
+  main().catch((err) => {
+    console.error('Failed to start:', err);
+    process.exit(1);
+  });
+}
