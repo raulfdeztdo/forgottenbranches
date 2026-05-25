@@ -66,6 +66,12 @@ if [[ -d "$SCRIPT_DIR/client/dist" ]]; then
   log_ok "client/dist removed"
 fi
 
+# Remove shared dist
+if [[ -d "$SCRIPT_DIR/shared/dist" ]]; then
+  rm -rf -- "$SCRIPT_DIR/shared/dist"
+  log_ok "shared/dist removed"
+fi
+
 # ── Done ──────────────────────────────────────────────────────────────────────
 echo ""
 log_ok "Uninstall complete."

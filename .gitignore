@@ -19,3 +19,8 @@ opencode.json
 coverage/
 playwright-report/
 test-results/
+
+# Build artifacts (workspace packages)
+server/dist/
+client/dist/
+shared/dist/
