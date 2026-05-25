@@ -7,9 +7,10 @@ import {
   Lock,
 } from 'lucide-react';
 import { BranchesResult, ArchivedBranch } from '@forgottenbranches/types';
-import { STATUS_COLORS } from './statusConfig';
 import BranchTable from './components/BranchTable';
 import ArchivedTable from './components/ArchivedTable';
+import StatsBar from './components/StatsBar';
+import Legend from './components/Legend';
 import { useToast } from './components/ToastContext';
 import ForceDeleteModal, { FailedBranch } from './components/ForceDeleteModal';
 
@@ -35,11 +36,21 @@ function saveRecent(paths: string[]) {
 }
 
 
+function getInitialParams() {
+  const params = new URLSearchParams(window.location.search);
+  return {
+    path: params.get('path') || '',
+    locked: params.get('locked') === '1',
+  };
+}
+
+const initialParams = getInitialParams();
+
 export default function App() {
   const { toast } = useToast();
-  const [repoPath, setRepoPath] = useState('');
-  const [isLocked, setIsLocked] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [repoPath, setRepoPath] = useState(initialParams.path);
+  const [isLocked] = useState(initialParams.locked);
+  const [loading, setLoading] = useState(!!initialParams.path);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<BranchesResult | null>(null);
@@ -71,15 +82,8 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const pathParam = params.get('path');
-    const lockedParam = params.get('locked');
-    if (pathParam) {
-      setRepoPath(pathParam);
-      scanRepo(pathParam);
-    }
-    if (lockedParam === '1') {
-      setIsLocked(true);
+    if (initialParams.path) {
+      scanRepo(initialParams.path);
     }
   }, []);
 
@@ -221,8 +225,7 @@ export default function App() {
       } else if (json.results) {
         // bulk path — check per-branch results
         const failed: string[] = json.results
-          .filter((r: { success: boolean; branch: string }) => !r.success)
-          .map((r: { branch: string }) => r.branch);
+          .flatMap((r: { success: boolean; branch: string }) => !r.success ? [r.branch] : []);
         const ok = names.length - failed.length;
         if (ok > 0) toast('success', `${ok} branch${ok !== 1 ? 'es' : ''} archived`);
         if (failed.length > 0) toast('error', `${failed.length} branch${failed.length !== 1 ? 'es' : ''} failed to archive`, failed.join(', '));
@@ -296,55 +299,51 @@ export default function App() {
 
   async function handleUnarchive(names: string[]) {
     const trimmed = repoPath.trim();
-    let ok = 0;
-    let failed = 0;
-    for (const name of names) {
-      try {
-        const res = await fetch('/api/branches/unarchive', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: trimmed, branch: name }),
-        });
-        if (res.ok) ok++;
-        else {
+    const results = await Promise.all(
+      names.map(async (name) => {
+        try {
+          const res = await fetch('/api/branches/unarchive', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: trimmed, branch: name }),
+          });
+          if (res.ok) return { ok: true, name };
           const json = await res.json();
           toast('error', `Failed to restore "${name}"`, json.error || json.message || 'Unknown error');
-          failed++;
+          return { ok: false, name };
+        } catch (err) {
+          toast('error', `Failed to restore "${name}"`, err instanceof Error ? err.message : 'Connection error');
+          return { ok: false, name };
         }
-      } catch (err) {
-        toast('error', `Failed to restore "${name}"`, err instanceof Error ? err.message : 'Connection error');
-        failed++;
-      }
-    }
+      })
+    );
+    const ok = results.filter((r) => r.ok).length;
     if (ok > 0) toast('success', `${ok} branch${ok !== 1 ? 'es' : ''} restored`);
-    void failed; // already toasted individually
     loadArchived();
     refreshBranches();
   }
 
   async function handleDeleteArchive(names: string[]) {
     const trimmed = repoPath.trim();
-    let ok = 0;
-    let failed = 0;
-    for (const name of names) {
-      try {
-        const res = await fetch(
-          `/api/branches/archived?path=${encodeURIComponent(trimmed)}&branch=${encodeURIComponent(name)}`,
-          { method: 'DELETE' }
-        );
-        if (res.ok) ok++;
-        else {
+    const results = await Promise.all(
+      names.map(async (name) => {
+        try {
+          const res = await fetch(
+            `/api/branches/archived?path=${encodeURIComponent(trimmed)}&branch=${encodeURIComponent(name)}`,
+            { method: 'DELETE' }
+          );
+          if (res.ok) return { ok: true, name };
           const json = await res.json();
           toast('error', `Failed to delete "${name}"`, json.error || json.message || 'Unknown error');
-          failed++;
+          return { ok: false, name };
+        } catch (err) {
+          toast('error', `Failed to delete "${name}"`, err instanceof Error ? err.message : 'Connection error');
+          return { ok: false, name };
         }
-      } catch (err) {
-        toast('error', `Failed to delete "${name}"`, err instanceof Error ? err.message : 'Connection error');
-        failed++;
-      }
-    }
+      })
+    );
+    const ok = results.filter((r) => r.ok).length;
     if (ok > 0) toast('success', `${ok} archived branch${ok !== 1 ? 'es' : ''} deleted permanently`);
-    void failed;
     loadArchived();
   }
 
@@ -356,7 +355,7 @@ export default function App() {
     if (e.key === 'Escape') setShowRecent(false);
   }
 
-  function handleFocus() {
+  function showRecentDropdown() {
     if (recent.length > 0) setShowRecent(true);
   }
 
@@ -381,13 +380,15 @@ export default function App() {
               type="text"
               className="path-input"
               placeholder="Paste a project path..."
+              aria-label="Repository path"
               value={repoPath}
               onChange={(e) => setRepoPath(e.target.value)}
               onKeyDown={handleKeyDown}
-              onFocus={handleFocus}
+              onFocus={showRecentDropdown}
             />
             {repoPath && (
               <button
+                type="button"
                 className="clear-input-btn"
                 onClick={() => setRepoPath('')}
                 tabIndex={-1}
@@ -403,6 +404,7 @@ export default function App() {
                 <Clock size={13} />
                 <span>Recent projects</span>
                 <button
+                  type="button"
                   className="recent-clear-all"
                   onClick={() => {
                     setRecent([]);
@@ -415,12 +417,14 @@ export default function App() {
               </div>
               {recent.map((p) => (
                 <button
+                  type="button"
                   key={p}
                   className="recent-item"
                   onClick={() => selectRecent(p)}
                 >
                   <span className="recent-path">{p}</span>
-                  <span
+                  <button
+                    type="button"
                     className="recent-remove"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -429,7 +433,7 @@ export default function App() {
                     title="Remove from history"
                   >
                     <X size={12} />
-                  </span>
+                  </button>
                 </button>
               ))}
             </div>
@@ -437,6 +441,7 @@ export default function App() {
         </div>
 
         <button
+          type="button"
           className="scan-btn"
           onClick={scanBranches}
           disabled={loading || !repoPath.trim()}
@@ -457,6 +462,7 @@ export default function App() {
                 value={repoPath}
                 readOnly
                 tabIndex={-1}
+                aria-label="Repository path (locked)"
               />
             </div>
           </div>
@@ -478,46 +484,17 @@ export default function App() {
 
       {data && (
         <>
-          <div className="stats">
-            <div
-              className="stat"
-              onClick={showArchived ? toggleArchived : undefined}
-              role={showArchived ? 'button' : undefined}
-              tabIndex={showArchived ? 0 : undefined}
-              style={showArchived ? { cursor: 'pointer' } : undefined}
-            >
-              <span className="stat-value">{data.totalLocal}</span>
-              <span className="stat-label">Local Branches</span>
-            </div>
-            <div className="stat stat-warn">
-              <span className="stat-value">{data.totalForgotten}</span>
-              <span className="stat-label">Forgotten / Orphan</span>
-            </div>
-            <div className="stat">
-              <span className="stat-value">{data.mainBranch}</span>
-              <span className="stat-label">Main Branch</span>
-            </div>
-            {data.currentBranch && (
-              <div className="stat stat-current">
-                <span className="stat-value">{data.currentBranch}</span>
-                <span className="stat-label">Current Branch</span>
-              </div>
-            )}
-            <div
-              className={`stat stat-tab${showArchived ? ' stat-tab--active' : ''}`}
-              onClick={!showArchived ? toggleArchived : undefined}
-              role={!showArchived ? 'button' : undefined}
-              tabIndex={!showArchived ? 0 : undefined}
-            >
-              <span className="stat-value">{archivedCount}</span>
-              <span className="stat-label">Archived</span>
-            </div>
-          </div>
+          <StatsBar
+            data={data}
+            archivedCount={archivedCount}
+            showArchived={showArchived}
+            onToggleArchived={toggleArchived}
+          />
 
           {showArchived ? (
             archivedLoading ? (
               <div className="table-card">
-                <div className="empty-row">Loading...</div>
+                <div className="empty-row">Loading…</div>
               </div>
             ) : (
               <ArchivedTable
@@ -539,46 +516,7 @@ export default function App() {
             />
           )}
 
-          <div className="legend">
-            <h3 className="legend-title">How branches are classified</h3>
-            <div className="legend-grid">
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.active }} />
-                <div>
-                  <strong>Active</strong>
-                  <p>Recent commits and a valid upstream. In use.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.forgotten }} />
-                <div>
-                  <strong>Forgotten</strong>
-                  <p>Merged into main but upstream was deleted. Safe to remove.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.merged }} />
-                <div>
-                  <strong>Merged</strong>
-                  <p>Already merged into main. Upstream still exists.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.orphan }} />
-                <div>
-                  <strong>Orphan</strong>
-                  <p>Remote upstream deleted, never merged. Review first.</p>
-                </div>
-              </div>
-              <div className="legend-item">
-                <span className="legend-dot" style={{ background: STATUS_COLORS.abandoned }} />
-                <div>
-                  <strong>Abandoned</strong>
-                  <p>No commits in 90+ days (or 60 without upstream).</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Legend />
         </>
       )}
 

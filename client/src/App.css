@@ -267,6 +267,9 @@ body {
   color: var(--text-muted);
   opacity: 0;
   transition: opacity var(--transition), color var(--transition), background var(--transition);
+  background: none;
+  border: none;
+  padding: 0;
 }
 .recent-item:hover .recent-remove {
   opacity: 1;
@@ -447,6 +450,9 @@ body {
   color: var(--text-muted);
   cursor: pointer;
   transition: color var(--transition);
+  background: none;
+  border: none;
+  padding: 0;
 }
 .check-cell:hover {
   color: var(--text-secondary);
@@ -1713,6 +1719,11 @@ body {
   transition: background var(--transition);
   border: 1px solid transparent;
   margin-bottom: 4px;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
 }
 .fdm-item:hover { background: var(--bg-hover); }
 .fdm-item--selected {

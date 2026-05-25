@@ -74,7 +74,7 @@ export default function BranchDetail({
           </div>
         </td>
         <td className="upstream-cell">
-          {branch.upstream ? <span className="upstream-text"><ArrowUpRight size={12} /> {branch.upstream}</span> : <span className="no-upstream">—</span>}
+          {branch.upstream ? <span className="upstream-text"><ArrowUpRight size={12} /> {branch.upstream}</span>           : <span className="no-upstream">:</span>}
         </td>
         <td className="commit-cell">
           <div className="commit-author"><User size={12} /> {branch.lastCommitAuthor}</div>

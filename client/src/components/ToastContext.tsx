@@ -3,6 +3,7 @@ import {
   use,
   useState,
   useCallback,
+  useMemo,
   useRef,
   ReactNode,
 } from 'react';
@@ -54,8 +55,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     [dismiss]
   );
 
+  const contextValue = useMemo(() => ({ toast }), [toast]);
+
   return (
-    <ToastContext.Provider value={{ toast }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <div className="toast-container" aria-live="polite" aria-atomic="false">
         {toasts.map((t) => (
@@ -68,6 +71,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               {t.message && <span className="toast-message">{t.message}</span>}
             </div>
             <button
+              type="button"
               className="toast-close"
               onClick={() => dismiss(t.id)}
               aria-label="Dismiss"

@@ -83,10 +83,10 @@ export default function BranchActions({ branch, repoPath, isProtected, protected
 
       {!showArchive && !showDelete && !isProtected && (
         <div className="action-buttons">
-          <button className="action-btn action-archive" onClick={(e) => { e.stopPropagation(); setShowArchive(true); setActionError(null); }}>
+          <button type="button" className="action-btn action-archive" onClick={(e) => { e.stopPropagation(); setShowArchive(true); setActionError(null); }}>
             <Archive size={15} /> Archive
           </button>
-          <button className="action-btn action-delete" onClick={(e) => { e.stopPropagation(); setShowDelete(true); setActionError(null); }} title={branch.name}>
+          <button type="button" className="action-btn action-delete" onClick={(e) => { e.stopPropagation(); setShowDelete(true); setActionError(null); }} title={branch.name}>
             <Trash2 size={15} /> Delete
           </button>
         </div>
@@ -94,7 +94,7 @@ export default function BranchActions({ branch, repoPath, isProtected, protected
 
       {!showArchive && !showDelete && isProtected && (
         <p className="detail-protected-hint">
-          <Lock size={12} /> Protected — {protectedReason}. Cannot be archived or deleted.
+          <Lock size={12} /> Protected: {protectedReason}. Cannot be archived or deleted.
         </p>
       )}
 
@@ -105,10 +105,10 @@ export default function BranchActions({ branch, repoPath, isProtected, protected
             A tag <code>archive/{branch.name}</code> will be created and the branch deleted locally. You can restore it later.
           </p>
           <div className="confirm-actions">
-            <button className="btn-cancel" onClick={(e) => { e.stopPropagation(); setShowArchive(false); setActionError(null); }} disabled={archiving}>
+            <button type="button" className="btn-cancel" onClick={(e) => { e.stopPropagation(); setShowArchive(false); setActionError(null); }} disabled={archiving}>
               <X size={14} /> Cancel
             </button>
-            <button className="btn-confirm-archive" onClick={(e) => { e.stopPropagation(); handleArchive(); }} disabled={archiving}>
+            <button type="button" className="btn-confirm-archive" onClick={(e) => { e.stopPropagation(); handleArchive(); }} disabled={archiving}>
               {archiving ? 'Archiving…' : 'Archive'}
             </button>
           </div>
@@ -125,15 +125,15 @@ export default function BranchActions({ branch, repoPath, isProtected, protected
             </p>
           )}
           <div className="confirm-actions">
-            <button className="btn-cancel" onClick={(e) => { e.stopPropagation(); setShowDelete(false); setActionError(null); }} disabled={deleting}>
+            <button type="button" className="btn-cancel" onClick={(e) => { e.stopPropagation(); setShowDelete(false); setActionError(null); }} disabled={deleting}>
               <X size={14} /> Cancel
             </button>
             {!branch.isMergedIntoMain && (
-              <button className="btn-force" onClick={(e) => { e.stopPropagation(); handleDelete(true); }} disabled={deleting}>
+              <button type="button" className="btn-force" onClick={(e) => { e.stopPropagation(); handleDelete(true); }} disabled={deleting}>
                 {deleting ? 'Deleting…' : 'Force Delete'}
               </button>
             )}
-            <button className="btn-confirm-delete" onClick={(e) => { e.stopPropagation(); handleDelete(false); }} disabled={deleting}>
+            <button type="button" className="btn-confirm-delete" onClick={(e) => { e.stopPropagation(); handleDelete(false); }} disabled={deleting}>
               {deleting ? 'Deleting…' : 'Delete'}
             </button>
           </div>

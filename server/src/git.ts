@@ -169,8 +169,10 @@ export async function getBranches(
 
   const parsedBranches: Omit<BranchInfo, 'mergeInfo'>[] = rawBranches
     .split('\n')
-    .map((line) => line.trim())
-    .filter((line) => line)
+    .flatMap((line) => {
+      const trimmed = line.trim();
+      return trimmed ? [trimmed] : [];
+    })
     .map((line) => {
       const parts = line.split('|');
       const name = parts[0] || '';
@@ -316,11 +318,12 @@ export async function archiveBranches(
   branchNames: string[],
   mainBranch?: string
 ): Promise<{ success: boolean; results: { branch: string; success: boolean; message: string }[] }> {
-  const results = [];
-  for (const name of branchNames) {
-    const r = await archiveBranch(repoPath, name, mainBranch);
-    results.push({ branch: name, ...r });
-  }
+  const results = await Promise.all(
+    branchNames.map(async (name) => {
+      const r = await archiveBranch(repoPath, name, mainBranch);
+      return { branch: name, ...r };
+    })
+  );
   return { success: results.every((r) => r.success), results };
 }
 
@@ -380,48 +383,52 @@ export async function getArchivedBranches(
     ]);
     if (!output) return [];
 
-    const lines = output.split('\n').map((l) => l.trim()).filter((l) => l);
+    const lines = output.split('\n').flatMap((l) => {
+      const trimmed = l.trim();
+      return trimmed ? [trimmed] : [];
+    });
 
-    const branches: ArchivedBranch[] = [];
-    for (const line of lines) {
-      const parts = line.split('|');
-      const tagName = parts[0] || '';
-      const commitHash = parts[1] || '';
-      const archivedAt = parts[2] || '';
+    const branches: ArchivedBranch[] = await Promise.all(
+      lines.map(async (line) => {
+        const parts = line.split('|');
+        const tagName = parts[0] || '';
+        const commitHash = parts[1] || '';
+        const archivedAt = parts[2] || '';
 
-      // Extract original branch name (after "archive/")
-      const name = tagName.startsWith('archive/')
-        ? tagName.slice('archive/'.length)
-        : tagName;
+        // Extract original branch name (after "archive/")
+        const name = tagName.startsWith('archive/')
+          ? tagName.slice('archive/'.length)
+          : tagName;
 
-      // Get commit details
-      let commitAuthor = '';
-      let commitDate = '';
-      let commitMessage = '';
-      try {
-        const commitInfo = await git(repoPath, [
-          'log',
-          '-1',
-          '--format=%an|%ci|%s',
+        // Get commit details
+        let commitAuthor = '';
+        let commitDate = '';
+        let commitMessage = '';
+        try {
+          const commitInfo = await git(repoPath, [
+            'log',
+            '-1',
+            '--format=%an|%ci|%s',
+            commitHash,
+          ]);
+          const cparts = commitInfo.split('|');
+          commitAuthor = cparts[0] || '';
+          commitDate = cparts[1] || '';
+          commitMessage = cparts.slice(2).join('|') || '';
+        } catch {
+          // commit might not exist anymore
+        }
+
+        return {
+          name,
+          archivedAt,
           commitHash,
-        ]);
-        const cparts = commitInfo.split('|');
-        commitAuthor = cparts[0] || '';
-        commitDate = cparts[1] || '';
-        commitMessage = cparts.slice(2).join('|') || '';
-      } catch {
-        // commit might not exist anymore
-      }
-
-      branches.push({
-        name,
-        archivedAt,
-        commitHash,
-        commitAuthor,
-        commitDate,
-        commitMessage,
-      });
-    }
+          commitAuthor,
+          commitDate,
+          commitMessage,
+        };
+      })
+    );
 
     return branches;
   } catch {
@@ -440,11 +447,8 @@ export async function deleteBranches(
   success: boolean;
   results: { branch: string; success: boolean; message: string }[];
 }> {
-  const results = [];
-  const protectedBranches = ['main', 'master'];
-  if (mainBranch && !protectedBranches.includes(mainBranch)) {
-    protectedBranches.push(mainBranch);
-  }
+  const protectedSet = new Set(['main', 'master']);
+  if (mainBranch) protectedSet.add(mainBranch);
 
   // Get current branch once
   let currentBranch = '';
@@ -460,23 +464,32 @@ export async function deleteBranches(
     // ignore
   }
 
+  const preChecks: { branch: string; success: boolean; message: string }[] = [];
+  const toDelete: string[] = [];
+
   for (const name of branchNames) {
-    if (protectedBranches.includes(name)) {
-      results.push({ branch: name, success: false, message: `Cannot delete protected branch "${name}"` });
-      continue;
-    }
-    if (currentBranch === name) {
-      results.push({ branch: name, success: false, message: `Cannot delete branch "${name}" — it is currently checked out` });
-      continue;
-    }
-    try {
-      await git(repoPath, ['branch', force ? '-D' : '-d', name]);
-      results.push({ branch: name, success: true, message: `Branch "${name}" deleted` });
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Unknown error';
-      results.push({ branch: name, success: false, message });
+    if (protectedSet.has(name)) {
+      preChecks.push({ branch: name, success: false, message: `Cannot delete protected branch "${name}"` });
+    } else if (currentBranch === name) {
+      preChecks.push({ branch: name, success: false, message: `Cannot delete branch "${name}" — it is currently checked out` });
+    } else {
+      toDelete.push(name);
     }
   }
+
+  const deleteResults = await Promise.all(
+    toDelete.map(async (name) => {
+      try {
+        await git(repoPath, ['branch', force ? '-D' : '-d', name]);
+        return { branch: name, success: true, message: `Branch "${name}" deleted` };
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Unknown error';
+        return { branch: name, success: false, message };
+      }
+    })
+  );
+
+  const results = [...preChecks, ...deleteResults];
 
   return { success: results.every((r) => r.success), results };
 }

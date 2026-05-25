@@ -20,18 +20,22 @@ function getVersion(): string {
 
 async function findPort(start: number): Promise<number> {
   const net = await import('net');
-  for (let port = start; port < start + 100; port++) {
-    const free = await new Promise<boolean>((resolve) => {
-      const server = net.createServer();
-      server.unref();
-      server.on('error', () => resolve(false));
-      server.listen(port, '127.0.0.1', () => {
-        server.close(() => resolve(true));
-      });
-    });
-    if (free) return port;
-  }
-  return start;
+  const ports = Array.from({ length: 100 }, (_, i) => start + i);
+  const results = await Promise.all(
+    ports.map(
+      (port) =>
+        new Promise<boolean>((resolve) => {
+          const server = net.createServer();
+          server.unref();
+          server.on('error', () => resolve(false));
+          server.listen(port, '127.0.0.1', () => {
+            server.close(() => resolve(true));
+          });
+        })
+    )
+  );
+  const freePort = ports.find((_, i) => results[i]);
+  return freePort ?? start;
 }
 
 function openBrowser(url: string): void {
