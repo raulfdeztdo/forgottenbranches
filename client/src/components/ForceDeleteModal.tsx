@@ -43,11 +43,22 @@ export default function ForceDeleteModal({
   }
 
   return (
-    <div className="modal-backdrop" onClick={onClose}>
-      <div
+    <div
+      className="modal-backdrop"
+      onClick={onClose}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClose();
+        }
+      }}
+      role="button"
+      tabIndex={0}
+    >
+      <dialog
+        open
         className="modal"
         onClick={(e) => e.stopPropagation()}
-        role="dialog"
         aria-modal="true"
         aria-labelledby="fdm-title"
       >
@@ -58,14 +69,14 @@ export default function ForceDeleteModal({
           <h2 className="modal-title" id="fdm-title">
             Some branches could not be deleted
           </h2>
-          <button className="modal-close" onClick={onClose} aria-label="Close">
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
             <X size={16} />
           </button>
         </div>
 
         <p className="modal-desc">
           The following branches are <strong>not fully merged</strong> into
-          main and were skipped. Select the ones you want to force-delete —
+          main and were skipped. Select the ones you want to force-delete:
           this action is irreversible and may cause data loss.
         </p>
 
@@ -75,6 +86,14 @@ export default function ForceDeleteModal({
               key={f.branch}
               className={`fdm-item ${selected.has(f.branch) ? 'fdm-item--selected' : ''}`}
               onClick={() => toggle(f.branch)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  toggle(f.branch);
+                }
+              }}
+              role="button"
+              tabIndex={0}
             >
               <input
                 type="checkbox"
@@ -82,6 +101,7 @@ export default function ForceDeleteModal({
                 checked={selected.has(f.branch)}
                 onChange={() => toggle(f.branch)}
                 onClick={(e) => e.stopPropagation()}
+                aria-label={`Select ${f.branch}`}
               />
               <GitBranch size={13} className="fdm-branch-icon" />
               <span className="fdm-branch-name">{f.branch}</span>
@@ -91,21 +111,22 @@ export default function ForceDeleteModal({
         </ul>
 
         <div className="modal-footer">
-          <button className="modal-btn modal-btn-cancel" onClick={onClose} disabled={deleting}>
+          <button type="button" className="modal-btn modal-btn-cancel" onClick={onClose} disabled={deleting}>
             <X size={14} /> Cancel
           </button>
           <button
+            type="button"
             className="modal-btn modal-btn-force"
             onClick={handleForceDelete}
             disabled={deleting || selected.size === 0}
           >
             <Trash2 size={14} />
             {deleting
-              ? 'Force deleting...'
+              ? 'Force deleting…'
               : `Force delete ${selected.size} branch${selected.size !== 1 ? 'es' : ''}`}
           </button>
         </div>
-      </div>
+      </dialog>
     </div>
   );
 }

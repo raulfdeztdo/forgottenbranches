@@ -26,8 +26,9 @@ export default function Toast() {
       timerRef.current = setTimeout(() => setToast(null), 3000);
     };
     return () => {
+      const timer = timerRef.current;
       addToast = null;
-      if (timerRef.current) clearTimeout(timerRef.current);
+      if (timer) clearTimeout(timer);
     };
   }, []);
 

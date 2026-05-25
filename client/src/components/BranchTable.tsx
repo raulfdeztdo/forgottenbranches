@@ -64,7 +64,7 @@ export default function BranchTable({
       return nameMatch && statusMatch;
     });
 
-    return [...filtered].sort((a, b) => {
+    return filtered.toSorted((a, b) => {
       let cmp = 0;
       switch (sortBy) {
         case 'name':
@@ -134,6 +134,7 @@ export default function BranchTable({
         <div className="bulk-bar">
           <span className="bulk-count">{selectedCount} selected</span>
           <button
+            type="button"
             className="bulk-btn bulk-archive"
             onClick={() => {
               onArchive([...selected]);
@@ -143,6 +144,7 @@ export default function BranchTable({
             <Archive size={14} /> Archive
           </button>
           <button
+            type="button"
             className="bulk-btn bulk-delete"
             onClick={() => {
               onBulkDelete([...selected]);
@@ -151,7 +153,7 @@ export default function BranchTable({
           >
             <Trash2 size={14} /> Delete
           </button>
-          <button className="bulk-btn bulk-cancel" onClick={clearSelection}>
+          <button type="button" className="bulk-btn bulk-cancel" onClick={clearSelection}>
             Clear selection
           </button>
         </div>
@@ -164,11 +166,12 @@ export default function BranchTable({
             type="text"
             className="search-input"
             placeholder="Filter branches..."
+            aria-label="Filter branches"
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
           />
           {filter && (
-            <button className="search-clear" onClick={() => setFilter('')}>
+            <button type="button" className="search-clear" onClick={() => setFilter('')}>
               &times;
             </button>
           )}
@@ -177,6 +180,7 @@ export default function BranchTable({
         <div className="status-pills">
           {STATUS_OPTIONS.map((opt) => (
             <button
+              type="button"
               key={opt.value}
               className={`pill ${statusFilter === opt.value ? 'pill-selected' : ''} pill-${opt.value}`}
               onClick={() => setStatusFilter(opt.value)}
@@ -209,6 +213,15 @@ export default function BranchTable({
               <th className="th-check">
                 <span
                   className={`check-cell ${allChecked ? 'checked' : ''}`}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleSelectAll();
+                    }
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
                     toggleSelectAll();
@@ -268,7 +281,7 @@ export default function BranchTable({
             {refreshing && sorted.length > 0 && (
               <tr className="skeleton-tr">
                 <td colSpan={7} className="refresh-msg">
-                  Refreshing...
+                   Refreshing…
                 </td>
               </tr>
             )}

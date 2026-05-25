@@ -371,10 +371,7 @@ describe('archiveBranch', () => {
 
 describe('archiveBranches', () => {
   it('archives multiple branches', async () => {
-    execFileMock.mockReturnValueOnce(''); // tag + delete for first
-    execFileMock.mockReturnValueOnce('');
-    execFileMock.mockReturnValueOnce(''); // tag + delete for second
-    execFileMock.mockReturnValueOnce('');
+    execFileMock.mockImplementation(() => '');
 
     const result = await archiveBranches(REPO, ['feature/a', 'feature/b']);
     expect(result.success).toBe(true);
@@ -384,16 +381,19 @@ describe('archiveBranches', () => {
   });
 
   it('reports partial failure', async () => {
-    execFileMock.mockReturnValueOnce(''); // success
-    execFileMock.mockReturnValueOnce(''); // success
-    execFileMock.mockImplementationOnce(() => {
-      throw new Error('cannot archive');
-    }); // fails
+    execFileMock.mockImplementation((_cmd: string, args: string[]) => {
+      if (args[0] === 'tag' && args[4] === 'feature/b') {
+        throw new Error('cannot archive');
+      }
+      return '';
+    });
 
     const result = await archiveBranches(REPO, ['feature/a', 'feature/b']);
     expect(result.success).toBe(false);
-    expect(result.results[0].success).toBe(true);
-    expect(result.results[1].success).toBe(false);
+    const successResults = result.results.filter((r) => r.success);
+    const failedResults = result.results.filter((r) => !r.success);
+    expect(successResults).toHaveLength(1);
+    expect(failedResults).toHaveLength(1);
   });
 });
 

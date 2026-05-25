@@ -14,6 +14,7 @@ export function useGitData(repoPath: string) {
     if (!repoPath) return false;
     setLoading(true);
     setError(null);
+    if (!mountedRef.current) return false;
     try {
       const [branches, archivedBranches, current] = await Promise.all([
         getBranches(repoPath),

@@ -54,17 +54,19 @@ export default function TuiApp({ initialPath = '', locked = false }: Props) {
   const mainBranch = data?.mainBranch;
   const protectedSet = useMemo(() => new Set([mainBranch, currentBranch].filter(Boolean)), [mainBranch, currentBranch]);
 
+  const { statusFilter, searchQuery } = state;
+
   const filteredBranches = useMemo(
     () =>
       branches.filter((b) => {
-        if (state.statusFilter !== 'all' && b.status !== state.statusFilter) return false;
-        if (state.searchQuery) {
-          const q = state.searchQuery.toLowerCase();
+        if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+        if (searchQuery) {
+          const q = searchQuery.toLowerCase();
           if (!b.name.toLowerCase().includes(q) && !b.lastCommitMessage.toLowerCase().includes(q)) return false;
         }
         return true;
       }),
-    [branches, state.statusFilter, state.searchQuery]
+    [branches, statusFilter, searchQuery]
   );
 
   const handleScan = useCallback(async () => {

@@ -88,6 +88,7 @@ function ArchivedRow({
         <td>
           <div className="arch-actions">
             <button
+              type="button"
               className="arch-btn arch-restore"
               onClick={(e) => {
                 e.stopPropagation();
@@ -98,6 +99,7 @@ function ArchivedRow({
               <Undo2 size={13} />
             </button>
             <button
+              type="button"
               className="arch-btn arch-del"
               onClick={(e) => {
                 e.stopPropagation();
@@ -182,6 +184,7 @@ export default function ArchivedTable({ branches, onUnarchive, onDelete }: Props
         <div className="bulk-bar">
           <span className="bulk-count">{selectedCount} selected</span>
           <button
+            type="button"
             className="bulk-btn bulk-restore"
             onClick={() => {
               onUnarchive([...selected]);
@@ -191,6 +194,7 @@ export default function ArchivedTable({ branches, onUnarchive, onDelete }: Props
             <Undo2 size={14} /> Restore
           </button>
           <button
+            type="button"
             className="bulk-btn bulk-delete"
             onClick={() => {
               onDelete([...selected]);
@@ -199,7 +203,7 @@ export default function ArchivedTable({ branches, onUnarchive, onDelete }: Props
           >
             <Trash2 size={14} /> Delete
           </button>
-          <button className="bulk-btn bulk-cancel" onClick={clearSelection}>
+          <button type="button" className="bulk-btn bulk-cancel" onClick={clearSelection}>
             Clear
           </button>
         </div>
@@ -247,6 +251,15 @@ export default function ArchivedTable({ branches, onUnarchive, onDelete }: Props
                 <th>
                   <span
                     className={`check-cell ${allChecked ? 'checked' : ''}`}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleAll();
+                      }
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       toggleAll();
