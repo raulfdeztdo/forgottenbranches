@@ -98,6 +98,8 @@ Muchas veces se suben ramas a producción, se mergean y se quedan abandonadas en
 
 ### Instalación
 
+#### Instalación global (recomendada)
+
 ```bash
 git clone https://github.com/raulfdeztdo/forgottenbranches.git
 cd forgottenbranches
@@ -105,8 +107,32 @@ chmod +x install.sh update.sh uninstall.sh
 ./install.sh
 ```
 
-El script instala las dependencias, compila el proyecto y registra el comando `forgottenbranches` de forma global. También añade un acceso directo en el menú de aplicaciones del sistema.
+El script instala las dependencias, compila el proyecto y registra el comando `forgottenbranches` de forma global.
 
+#### Instalación como dependencia de proyecto (npm)
+
+```bash
+npm install forgottenbranches
+# o
+pnpm add forgottenbranches
+```
+
+Al instalarlo como dependencia, la herramienta **detecta automáticamente el proyecto actual** (`process.cwd()`) y escanea sus ramas sin necesidad de introducir la ruta manualmente.
+
+```bash
+npx forgottenbranches            # prompt Web/TUI para el proyecto actual
+npx forgottenbranches --tui      # TUI directamente
+npx forgottenbranches --web      # Web UI directamente
+```
+
+También puedes usarlo como API programática:
+
+```ts
+import { getBranches, deleteBranch, archiveBranch } from 'forgottenbranches';
+
+const result = await getBranches('/path/to/repo');
+console.log(result.branches);
+```
 ### Actualizar
 
 ```bash

@@ -114,7 +114,9 @@ function showPrompt(): Promise<'web' | 'tui'> {
 export async function main(argv: string[] = process.argv) {
   const args = argv.slice(2);
   const modeFlag = args.find((a) => a === '--tui' || a === '--web');
-  const repoPath = args.filter((a) => a !== '--tui' && a !== '--web').find((a) => !a.startsWith('--'));
+  const explicitPath = args.filter((a) => a !== '--tui' && a !== '--web').find((a) => !a.startsWith('--'));
+  // Auto-detect project path when installed as dependency (use cwd)
+  const repoPath = explicitPath || process.cwd();
 
   let mode: 'web' | 'tui';
 
