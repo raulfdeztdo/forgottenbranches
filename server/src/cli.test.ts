@@ -92,7 +92,10 @@ describe('main() argument parsing', () => {
     expect(createInterfaceMock).not.toHaveBeenCalled();
     expect(mockRender).toHaveBeenCalled();
     // createElement returns [component, props], render receives that
-    expect(mockRender).toHaveBeenCalledWith([MockTuiApp, { initialPath: undefined }]);
+    // initialPath is process.cwd() by default when no explicit path
+    expect(mockRender).toHaveBeenCalledWith(
+      [MockTuiApp, expect.objectContaining({ initialPath: expect.any(String) })]
+    );
   });
 
   it('showPrompt returns web for input "1"', async () => {
@@ -126,7 +129,9 @@ describe('main() argument parsing', () => {
   it('extracts repo path from args', async () => {
     await main(['node', 'cli', '--tui', '/my/repo']);
 
-    expect(mockRender).toHaveBeenCalledWith([MockTuiApp, { initialPath: '/my/repo' }]);
+    expect(mockRender).toHaveBeenCalledWith(
+      [MockTuiApp, expect.objectContaining({ initialPath: '/my/repo' })]
+    );
   });
 
   it('extracts repo path with --web flag', async () => {

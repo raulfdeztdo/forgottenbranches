@@ -72,6 +72,7 @@ interface KeyboardHandlerDeps {
   archived: { name: string }[];
   mainBranch?: string;
   currentBranch?: string | null;
+  locked: boolean;
   confirm: { type: 'archive' | 'delete'; branch: string } | null;
   setConfirm: (c: { type: 'archive' | 'delete'; branch: string } | null) => void;
   onScan: () => void;
@@ -95,6 +96,7 @@ export function useTuiKeyboard(deps: KeyboardHandlerDeps) {
     archived,
     mainBranch,
     currentBranch,
+    locked,
     confirm,
     setConfirm,
     onScan,
@@ -131,7 +133,7 @@ export function useTuiKeyboard(deps: KeyboardHandlerDeps) {
 
     if (state.focusedSection === 'input') return;
 
-    if (input === '/' || input === 'i') { dispatch({ type: 'SET_FOCUS', section: 'input' }); return; }
+    if (!locked && (input === '/' || input === 'i')) { dispatch({ type: 'SET_FOCUS', section: 'input' }); return; }
 
     if (state.focusedSection === 'filters') {
       if (key.return) { dispatch({ type: 'SET_FOCUS', section: 'list' }); return; }

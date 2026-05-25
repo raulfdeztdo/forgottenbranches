@@ -4,6 +4,7 @@ import {
   FolderSearch,
   Clock,
   X,
+  Lock,
 } from 'lucide-react';
 import { BranchesResult, ArchivedBranch } from '@forgottenbranches/types';
 import { STATUS_COLORS } from './statusConfig';
@@ -37,6 +38,7 @@ function saveRecent(paths: string[]) {
 export default function App() {
   const { toast } = useToast();
   const [repoPath, setRepoPath] = useState('');
+  const [isLocked, setIsLocked] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -71,9 +73,13 @@ export default function App() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const pathParam = params.get('path');
+    const lockedParam = params.get('locked');
     if (pathParam) {
       setRepoPath(pathParam);
       scanRepo(pathParam);
+    }
+    if (lockedParam === '1') {
+      setIsLocked(true);
     }
   }, []);
 
@@ -365,6 +371,7 @@ export default function App() {
         </p>
       </header>
 
+      {!isLocked && (
       <div className="search-bar">
         <div className="path-input-wrapper">
           <div className="path-input-group">
@@ -437,6 +444,24 @@ export default function App() {
           {loading ? 'Scanning...' : 'Scan Branches'}
         </button>
       </div>
+      )}
+
+      {isLocked && (
+        <div className="search-bar">
+          <div className="path-input-wrapper">
+            <div className="path-input-group">
+              <Lock size={17} className="input-icon" />
+              <input
+                type="text"
+                className="path-input"
+                value={repoPath}
+                readOnly
+                tabIndex={-1}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {error && <div className="error">{error}</div>}
 

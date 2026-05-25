@@ -4,5 +4,3 @@ packages:
   - shared
 allowBuilds:
   esbuild: true
-overrides:
-  forgottenbranches: 'link:'

@@ -22,6 +22,7 @@ import {
 
 interface Props {
   initialPath?: string;
+  locked?: boolean;
 }
 
 const initialTuiState: TuiState = {
@@ -35,7 +36,7 @@ const initialTuiState: TuiState = {
   showArchived: false,
 };
 
-export default function TuiApp({ initialPath = '' }: Props) {
+export default function TuiApp({ initialPath = '', locked = false }: Props) {
   const { exit } = useApp();
   const [repoPath, setRepoPath] = useState(initialPath);
   const [state, dispatch] = useReducer(tuiReducer, {
@@ -190,6 +191,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
     archived,
     mainBranch,
     currentBranch,
+    locked,
     confirm,
     setConfirm,
     onScan: handleScan,
@@ -210,6 +212,7 @@ export default function TuiApp({ initialPath = '' }: Props) {
         repoPath={repoPath}
         focused={state.focusedSection === 'input'}
         loading={loading}
+        locked={locked}
         onPathChange={setRepoPath}
         onScan={handleScan}
         onSubmit={handleScan}

@@ -6,25 +6,31 @@ interface Props {
   repoPath: string;
   focused: boolean;
   loading: boolean;
+  locked: boolean;
   onPathChange: (value: string) => void;
   onScan: () => void;
   onSubmit: () => void;
 }
 
-export default function Header({ repoPath, focused, loading, onPathChange, onScan, onSubmit }: Props) {
+export default function Header({ repoPath, focused, loading, locked, onPathChange, onScan, onSubmit }: Props) {
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Box marginBottom={1}>
         <Text bold color={COLORS.purple}>
           Forgotten Branches
         </Text>
+        {locked && (
+          <Text color={COLORS.textSecondary}> (project locked)</Text>
+        )}
       </Box>
       <Box>
         <Box marginRight={1}>
           <Text color={COLORS.textSecondary}>Path:</Text>
         </Box>
         <Box flexGrow={1} marginRight={1}>
-          {focused ? (
+          {locked ? (
+            <Text color={COLORS.text}>{repoPath}</Text>
+          ) : focused ? (
             <TextInput
               value={repoPath}
               onChange={onPathChange}
@@ -37,9 +43,11 @@ export default function Header({ repoPath, focused, loading, onPathChange, onSca
             </Text>
           )}
         </Box>
-        <Text color={COLORS.accent} dimColor={loading}>
-          [{loading ? 'Scanning...' : 'Scan'}]
-        </Text>
+        {!locked && (
+          <Text color={COLORS.accent} dimColor={loading}>
+            [{loading ? 'Scanning...' : 'Scan'}]
+          </Text>
+        )}
       </Box>
     </Box>
   );
